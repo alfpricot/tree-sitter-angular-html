@@ -1,0 +1,20 @@
+<input [value]="name" (input)="onInput($event)" [(ngModel)]="model" #box>
+<!--^ tag -->
+<!--    ^ property -->
+<!--                   ^ function.method -->
+<!--                           ^ function.call -->
+<!--                                   ^ variable.builtin -->
+<!--                                              ^ property -->
+<!--                                                                 ^ variable -->
+<li *ngFor="let item of items; index as i">{{ item.name | uppercase }}</li>
+<!--^ punctuation.special -->
+<!-- ^ keyword.directive -->
+<!--        ^ keyword -->
+<!--            ^ variable -->
+<!--                 ^ keyword -->
+<!--                                               ^ property -->
+<!--                                                      ^ function -->
+<ng-container></ng-container>
+<!--^ tag.builtin -->
+<p>{{ a * b }}</p>
+<!--    ^ operator -->

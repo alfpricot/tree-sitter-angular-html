@@ -1,0 +1,243 @@
+================================================================================
+literals
+================================================================================
+
+{{ [1, 2.5, 'a', "b", true, false, null, undefined, this] }}
+
+---
+
+(document
+  (interpolation
+    expression: (array
+      (number)
+      (number)
+      (string
+        (string_fragment))
+      (string
+        (string_fragment))
+      (true)
+      (false)
+      (null)
+      (undefined)
+      (this))))
+
+================================================================================
+member access, safe navigation and non-null
+================================================================================
+
+{{ a.b?.c?.[0]?.(x)!.d }}
+
+---
+
+(document
+  (interpolation
+    expression: (member_expression
+      object: (non_null_expression
+        (call_expression
+          function: (subscript_expression
+            object: (member_expression
+              object: (member_expression
+                object: (identifier)
+                property: (property_identifier))
+              property: (property_identifier))
+            index: (number))
+          arguments: (arguments
+            (identifier))))
+      property: (property_identifier))))
+
+================================================================================
+calls and keyed reads
+================================================================================
+
+{{ fn(a, b)[key] }}
+
+---
+
+(document
+  (interpolation
+    expression: (subscript_expression
+      object: (call_expression
+        function: (identifier)
+        arguments: (arguments
+          (identifier)
+          (identifier)))
+      index: (identifier))))
+
+================================================================================
+unary operators
+================================================================================
+
+{{ !flag && -n < +m && typeof x === 'string' && void 0 }}
+
+---
+
+(document
+  (interpolation
+    expression: (binary_expression
+      left: (binary_expression
+        left: (binary_expression
+          left: (unary_expression
+            argument: (identifier))
+          right: (binary_expression
+            left: (unary_expression
+              argument: (identifier))
+            right: (unary_expression
+              argument: (identifier))))
+        right: (binary_expression
+          left: (unary_expression
+            argument: (identifier))
+          right: (string
+            (string_fragment))))
+      right: (unary_expression
+        argument: (number)))))
+
+================================================================================
+binary operator precedence
+================================================================================
+
+{{ a || b && c ?? d == e < f + g * h ** i ** j }}
+
+---
+
+(document
+  (interpolation
+    expression: (binary_expression
+      left: (identifier)
+      right: (binary_expression
+        left: (identifier)
+        right: (binary_expression
+          left: (identifier)
+          right: (binary_expression
+            left: (identifier)
+            right: (binary_expression
+              left: (identifier)
+              right: (binary_expression
+                left: (identifier)
+                right: (binary_expression
+                  left: (identifier)
+                  right: (binary_expression
+                    left: (identifier)
+                    right: (binary_expression
+                      left: (identifier)
+                      right: (identifier))))))))))))
+
+================================================================================
+in operator and conditional
+================================================================================
+
+{{ key in obj ? yes : no }}
+
+---
+
+(document
+  (interpolation
+    expression: (conditional_expression
+      condition: (binary_expression
+        left: (identifier)
+        right: (identifier))
+      consequence: (identifier)
+      alternative: (identifier))))
+
+================================================================================
+object literals
+================================================================================
+
+<i [ngClass]="{active: on, 'is-big': big, short}"></i>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (property_binding
+        name: (binding_name)
+        value: (object
+          (pair
+            key: (property_identifier)
+            value: (identifier))
+          (pair
+            key: (string
+              (string_fragment))
+            value: (identifier))
+          (shorthand_property_identifier))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+template literals
+================================================================================
+
+{{ `Hello ${user.name}, you have ${count} items` }}
+
+---
+
+(document
+  (interpolation
+    expression: (template_string
+      (string_fragment)
+      (template_substitution
+        (member_expression
+          object: (identifier)
+          property: (property_identifier)))
+      (string_fragment)
+      (template_substitution
+        (identifier))
+      (string_fragment))))
+
+================================================================================
+tagged template literal
+================================================================================
+
+{{ tag`x ${y}` }}
+
+---
+
+(document
+  (interpolation
+    expression: (call_expression
+      function: (identifier)
+      arguments: (template_string
+        (string_fragment)
+        (template_substitution
+          (identifier))))))
+
+================================================================================
+string escapes
+================================================================================
+
+{{ 'it\'s' + "\u00e9" }}
+
+---
+
+(document
+  (interpolation
+    expression: (binary_expression
+      left: (string
+        (string_fragment)
+        (escape_sequence)
+        (string_fragment))
+      right: (string
+        (escape_sequence)))))
+
+================================================================================
+left-associative operators
+================================================================================
+
+{{ a * b + c - d < e == f }}
+
+---
+
+(document
+  (interpolation
+    expression: (binary_expression
+      left: (binary_expression
+        left: (binary_expression
+          left: (binary_expression
+            left: (binary_expression
+              left: (identifier)
+              right: (identifier))
+            right: (identifier))
+          right: (identifier))
+        right: (identifier))
+      right: (identifier))))

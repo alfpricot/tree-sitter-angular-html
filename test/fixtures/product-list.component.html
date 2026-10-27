@@ -1,0 +1,38 @@
+<section class="products" [class.loading]="loading()">
+  <header>
+    <h2>{{ title | titlecase }}</h2>
+    <input
+      type="search"
+      placeholder="Search products"
+      [value]="query()"
+      (input)="query.set($any($event.target).value)"
+      #search
+    />
+    <button type="button" (click)="search.value = ''; query.set('')" [disabled]="!query()">
+      Clear
+    </button>
+  </header>
+
+  @let visible = products() | filterBy: query() : 'name';
+
+  @if (visible.length > 0) {
+    <ul>
+      @for (product of visible; track product.id; let i = $index, last = $last) {
+        <li [class.last]="last" [attr.data-index]="i">
+          <img [src]="product.imageUrl" [alt]="product.name" width="64" height="64">
+          <a [routerLink]="['/products', product.id]">{{ product.name }}</a>
+          <span class="price">{{ product.price | currency: 'EUR' : 'symbol' : '1.2-2' }}</span>
+          @if (product.stock === 0) {
+            <em>Out of stock</em>
+          } @else if (product.stock < 5) {
+            <em>Only {{ product.stock }} left</em>
+          }
+        </li>
+      } @empty {
+        <li>No products match &ldquo;{{ query() }}&rdquo;.</li>
+      }
+    </ul>
+  } @else {
+    <p class="empty">Nothing to show.</p>
+  }
+</section>

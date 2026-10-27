@@ -1,0 +1,117 @@
+================================================================================
+defer without triggers
+================================================================================
+
+@defer {
+  <heavy-cmp />
+}
+
+---
+
+(document
+  (defer_block
+    body: (block
+      (element
+        (self_closing_tag
+          (tag_name))))))
+
+================================================================================
+defer with triggers
+================================================================================
+
+@defer (on viewport; on timer(500ms), hover(button); when ready; prefetch on idle) {
+  <heavy-cmp />
+}
+
+---
+
+(document
+  (defer_block
+    (defer_trigger
+      (trigger
+        name: (identifier)))
+    (defer_trigger
+      (trigger
+        name: (identifier)
+        argument: (duration))
+      (trigger
+        name: (identifier)
+        argument: (identifier)))
+    (defer_trigger
+      condition: (identifier))
+    (defer_trigger
+      (trigger
+        name: (identifier)))
+    body: (block
+      (element
+        (self_closing_tag
+          (tag_name))))))
+
+================================================================================
+defer with hydrate triggers
+================================================================================
+
+@defer (hydrate on interaction; hydrate when ready; hydrate never) {
+  x
+}
+
+---
+
+(document
+  (defer_block
+    (defer_trigger
+      (trigger
+        name: (identifier)))
+    (defer_trigger
+      condition: (identifier))
+    (defer_trigger)
+    body: (block
+      (text))))
+
+================================================================================
+defer with placeholder, loading and error
+================================================================================
+
+@defer (on idle) {
+  <big-chart />
+} @placeholder (minimum 500ms) {
+  <p>Chart</p>
+} @loading (after 100ms; minimum 1s) {
+  <spinner />
+} @error {
+  Failed
+}
+
+---
+
+(document
+  (defer_block
+    (defer_trigger
+      (trigger
+        name: (identifier)))
+    body: (block
+      (element
+        (self_closing_tag
+          (tag_name))))
+    (placeholder_block
+      (defer_timing
+        value: (duration))
+      body: (block
+        (element
+          (start_tag
+            (tag_name))
+          (text)
+          (end_tag
+            (tag_name)))))
+    (loading_block
+      (defer_timing
+        value: (duration))
+      (defer_timing
+        value: (duration))
+      body: (block
+        (element
+          (self_closing_tag
+            (tag_name)))))
+    (error_block
+      body: (block
+        (text)))))

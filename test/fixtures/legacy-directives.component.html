@@ -1,0 +1,28 @@
+<div class="orders" *ngIf="orders$ | async as orders; else loading">
+  <table>
+    <thead>
+      <tr><th>#<th>Customer<th>Total</tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let order of orders; trackBy: trackById; let i = index; let odd = odd"
+          [ngClass]="{odd: odd, 'is-late': order.late}"
+          (click)="open(order)">
+        <td>{{ i + 1 }}</td>
+        <td>{{ order.customer?.name ?? 'Unknown' }}</td>
+        <td>{{ order.total | number: '1.2-2' }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <ng-container *ngTemplateOutlet="summary; context: {$implicit: orders, count: orders.length}"></ng-container>
+</div>
+
+<ng-template #loading>
+  <p>Loading orders&hellip;</p>
+</ng-template>
+
+<ng-template #summary let-orders let-count="count">
+  <p>{{ count }} orders, {{ orders | totalOf: 'total' | currency }} in total.</p>
+</ng-template>
+
+<ng-content select="[footer]"></ng-content>
+<ng-content />

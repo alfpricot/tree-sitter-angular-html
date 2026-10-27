@@ -1,0 +1,31 @@
+<!-- Dashboard shell: deferred widgets with placeholders. -->
+<main class="dashboard" [style.--columns]="columns" @fadeIn>
+  @defer (on viewport; prefetch on idle) {
+    <app-revenue-chart [series]="revenue$ | async" (rangeChange)="onRange($event)" />
+  } @placeholder (minimum 500ms) {
+    <div class="skeleton chart"></div>
+  } @loading (after 100ms; minimum 1s) {
+    <app-spinner size="large" />
+  } @error {
+    <p role="alert">The chart could not be loaded.</p>
+  }
+
+  @defer (on interaction(toggle); on timer(5s)) {
+    <app-activity-feed [user]="user()!" />
+  } @placeholder {
+    <button #toggle type="button">Show activity</button>
+  }
+
+  @defer (hydrate on hover; hydrate when ready()) {
+    <app-recommendations [items]="recommendations" />
+  }
+
+  <aside [@slideInOut]="panelOpen ? 'open' : 'closed'" (@slideInOut.done)="panelAnimated($event)">
+    <h3>Filters</h3>
+    <app-filter-panel
+      [filters]="filters"
+      [(selected)]="selectedFilters"
+      (reset)="selectedFilters = []; reload()"
+    />
+  </aside>
+</main>

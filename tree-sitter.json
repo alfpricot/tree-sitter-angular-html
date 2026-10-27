@@ -1,0 +1,42 @@
+{
+  "grammars": [
+    {
+      "name": "angular_html",
+      "camelcase": "AngularHtml",
+      "scope": "text.html.angular",
+      "path": ".",
+      "file-types": [
+        "component.html",
+        "ng.html"
+      ],
+      "highlights": [
+        "queries/highlights.scm"
+      ],
+      "injections": [
+        "queries/injections.scm"
+      ],
+      "injection-regex": "^(angular|angular_html|ng)$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Tree-sitter grammar for Angular HTML templates",
+    "authors": [
+      {
+        "name": "M. Reifschneider"
+      }
+    ],
+    "links": {
+      "repository": "git+https://github.com/meloncholic/tree-sitter-angular-html.git"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": false,
+    "node": true,
+    "python": false,
+    "rust": true,
+    "swift": false
+  }
+}

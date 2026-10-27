@@ -1,0 +1,114 @@
+================================================================================
+pipe without arguments
+================================================================================
+
+{{ name | uppercase }}
+
+---
+
+(document
+  (interpolation
+    expression: (pipe_expression
+      value: (identifier)
+      name: (pipe_name))))
+
+================================================================================
+pipe with arguments
+================================================================================
+
+{{ price | currency:'USD':'symbol':'1.2-2' }}
+
+---
+
+(document
+  (interpolation
+    expression: (pipe_expression
+      value: (identifier)
+      name: (pipe_name)
+      argument: (string
+        (string_fragment))
+      argument: (string
+        (string_fragment))
+      argument: (string
+        (string_fragment)))))
+
+================================================================================
+chained pipes
+================================================================================
+
+{{ date | date:format | lowercase }}
+
+---
+
+(document
+  (interpolation
+    expression: (pipe_expression
+      value: (pipe_expression
+        value: (identifier)
+        name: (pipe_name)
+        argument: (identifier))
+      name: (pipe_name))))
+
+================================================================================
+a pipe after a conditional pipe argument belongs to its alternative
+================================================================================
+
+{{ v | p: a ? 1 : 2 | q }}
+
+---
+
+(document
+  (interpolation
+    expression: (pipe_expression
+      value: (identifier)
+      name: (pipe_name)
+      argument: (conditional_expression
+        condition: (identifier)
+        consequence: (number)
+        alternative: (pipe_expression
+          value: (number)
+          name: (pipe_name))))))
+
+================================================================================
+a pipe in a conditional branch
+================================================================================
+
+{{ c ? (a | p) : b | q }}
+
+---
+
+(document
+  (interpolation
+    expression: (conditional_expression
+      condition: (identifier)
+      consequence: (parenthesized_expression
+        (pipe_expression
+          value: (identifier)
+          name: (pipe_name)))
+      alternative: (pipe_expression
+        value: (identifier)
+        name: (pipe_name)))))
+
+================================================================================
+pipes inside parentheses and call arguments
+================================================================================
+
+{{ (items | async)?.length + f(x | json) }}
+
+---
+
+(document
+  (interpolation
+    expression: (binary_expression
+      left: (member_expression
+        object: (parenthesized_expression
+          (pipe_expression
+            value: (identifier)
+            name: (pipe_name)))
+        property: (property_identifier))
+      right: (call_expression
+        function: (identifier)
+        arguments: (arguments
+          (pipe_expression
+            value: (identifier)
+            name: (pipe_name)))))))

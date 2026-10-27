@@ -1,0 +1,230 @@
+================================================================================
+property bindings
+================================================================================
+
+<img [src]="url" [attr.aria-label]="label" [class.active]="on" [style.width.px]="w">
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (property_binding
+        name: (binding_name)
+        value: (identifier))
+      (property_binding
+        name: (binding_name)
+        value: (identifier))
+      (property_binding
+        name: (binding_name)
+        value: (identifier))
+      (property_binding
+        name: (binding_name)
+        value: (identifier)))))
+
+================================================================================
+event bindings
+================================================================================
+
+<button (click)="save(); close()" (keydown.enter)="go($event)" (window:resize)="r()">x</button>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (event_binding
+        name: (binding_name)
+        handler: (call_expression
+          function: (identifier)
+          arguments: (arguments))
+        handler: (call_expression
+          function: (identifier)
+          arguments: (arguments)))
+      (event_binding
+        name: (binding_name)
+        handler: (call_expression
+          function: (identifier)
+          arguments: (arguments
+            (identifier))))
+      (event_binding
+        name: (binding_name)
+        handler: (call_expression
+          function: (identifier)
+          arguments: (arguments))))
+    (text)
+    (end_tag
+      (tag_name))))
+
+================================================================================
+two-way binding
+================================================================================
+
+<input [(ngModel)]="name">
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (two_way_binding
+        name: (binding_name)
+        value: (identifier)))))
+
+================================================================================
+animation bindings
+================================================================================
+
+<div @fade [@slide]="state" (@slide.done)="done($event)"></div>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (animation_binding
+        name: (binding_name))
+      (property_binding
+        name: (binding_name)
+        value: (identifier))
+      (event_binding
+        name: (binding_name)
+        handler: (call_expression
+          function: (identifier)
+          arguments: (arguments
+            (identifier)))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+template references and inputs
+================================================================================
+
+<form #f="ngForm"></form>
+<ng-template let-item="$implicit" #row></ng-template>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (template_reference
+        name: (binding_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (end_tag
+      (tag_name)))
+  (element
+    (start_tag
+      (tag_name)
+      (template_input
+        name: (binding_name)
+        value: (quoted_attribute_value
+          (attribute_value)))
+      (template_reference
+        name: (binding_name)))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+canonical prefix forms
+================================================================================
+
+<b bind-title="t" on-click="c()" bindon-value="v" ref-me></b>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (property_binding
+        name: (binding_name)
+        value: (identifier))
+      (event_binding
+        name: (binding_name)
+        handler: (call_expression
+          function: (identifier)
+          arguments: (arguments)))
+      (two_way_binding
+        name: (binding_name)
+        value: (identifier))
+      (template_reference
+        name: (binding_name)))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+empty binding values
+================================================================================
+
+<b (click)="" [x]=""></b>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (event_binding
+        name: (binding_name))
+      (property_binding
+        name: (binding_name)))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+assignment in an event handler
+================================================================================
+
+<button (click)="count = count + 1; total += step">+</button>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (event_binding
+        name: (binding_name)
+        handler: (assignment_expression
+          left: (identifier)
+          right: (binary_expression
+            left: (identifier)
+            right: (number)))
+        handler: (augmented_assignment_expression
+          left: (identifier)
+          right: (identifier))))
+    (text)
+    (end_tag
+      (tag_name))))
+
+================================================================================
+unquoted binding values
+================================================================================
+
+<button [disabled]=busy (click)=save() *ngIf=show>x</button>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (property_binding
+        (binding_name)
+        (attribute_value))
+      (event_binding
+        (binding_name)
+        (attribute_value))
+      (structural_directive
+        (binding_name)
+        (attribute_value)))
+    (text)
+    (end_tag
+      (tag_name))))

@@ -1,0 +1,71 @@
+## Custom
+
+# Root markdown is local working material unless listed below.
+/*.md
+!/README.md
+!/ARCHITECTURE.md
+!/CONTRIBUTING.md
+!/SECURITY.md
+
+tmp/
+.tmp/
+Cargo.lock
+node_modules
+.node-version
+build
+*.log
+/test.js
+/examples/npm
+/target/
+/.build/
+
+## Generated Entries
+
+# Rust artifacts
+target/
+
+# Node artifacts
+build/
+prebuilds/
+node_modules/
+
+# Swift artifacts
+.build/
+
+# Go artifacts
+_obj/
+
+# Python artifacts
+.venv/
+dist/
+*.egg-info/
+*.whl
+__pycache__/
+
+# C artifacts
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.pc
+*.exp
+*.lib
+
+# Zig artifacts
+.zig-cache/
+zig-cache/
+zig-out/
+
+# Example dirs
+/examples/*/
+
+# Grammar volatiles
+*.wasm
+*.obj
+*.o
+
+# Archives
+*.tar.gz
+*.tgz
+*.zip

@@ -1,0 +1,82 @@
+================================================================================
+interpolation in text
+================================================================================
+
+<h1>Hello, {{ user.name }}!</h1>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (text)
+    (interpolation
+      expression: (member_expression
+        object: (identifier)
+        property: (property_identifier)))
+    (text)
+    (end_tag
+      (tag_name))))
+
+================================================================================
+several interpolations
+================================================================================
+
+{{ a }}{{ b }} and {{ c }}
+
+---
+
+(document
+  (interpolation
+    expression: (identifier))
+  (interpolation
+    expression: (identifier))
+  (text)
+  (interpolation
+    expression: (identifier)))
+
+================================================================================
+interpolation in attribute values
+================================================================================
+
+<a href="/users/{{ id }}" title='Hi {{ name }}'>x</a>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value)
+          (interpolation
+            expression: (identifier))))
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value)
+          (interpolation
+            expression: (identifier)))))
+    (text)
+    (end_tag
+      (tag_name))))
+
+================================================================================
+object literal in an interpolation
+================================================================================
+
+{{ {a: 1}.a }}
+
+---
+
+(document
+  (interpolation
+    expression: (member_expression
+      object: (object
+        (pair
+          key: (property_identifier)
+          value: (number)))
+      property: (property_identifier))))

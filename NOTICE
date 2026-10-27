@@ -1,0 +1,13 @@
+tree-sitter-angular-html adapts material from one MIT-licensed project.
+
+The external scanner (src/scanner.c) derives from tree-sitter-html's scanner
+(https://github.com/tree-sitter/tree-sitter-html), copyright (c) 2014 Max
+Brunsfeld, licensed under the MIT License. The adaptation keeps its
+open-element stack, implicit end tag rules, raw text and comment scanning,
+and adds Angular-aware text, quoted attribute text that stops at `{{`, and
+block markers on the element stack for `@if`/`@for`/`@switch`/`@defer`
+braces. Tag names are stored as strings instead of an enum of known tags.
+
+The HTML node names (element, start_tag, attribute, quoted_attribute_value,
+...) follow tree-sitter-html's so existing queries carry over. The grammar
+rules themselves are written from scratch.
