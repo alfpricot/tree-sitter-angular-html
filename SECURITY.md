@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Do not open a public issue. Report it privately through [GitHub's private vulnerability reporting](https://github.com/meloncholic/tree-sitter-angular-html/security/advisories/new), and include what you found, how to reproduce it, and the impact you expect.
+Do not open a public issue. Report it privately through [GitHub's private vulnerability reporting](https://github.com/alfpricot/tree-sitter-angular-html/security/advisories/new), and include what you found, how to reproduce it, and the impact you expect.
 
 ## Scope
 
