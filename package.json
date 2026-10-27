@@ -42,12 +42,12 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/meloncholic/tree-sitter-angular-html.git"
+    "url": "git+https://github.com/alfpricot/tree-sitter-angular-html.git"
   },
   "bugs": {
-    "url": "https://github.com/meloncholic/tree-sitter-angular-html/issues"
+    "url": "https://github.com/alfpricot/tree-sitter-angular-html/issues"
   },
-  "homepage": "https://github.com/meloncholic/tree-sitter-angular-html#readme",
+  "homepage": "https://github.com/alfpricot/tree-sitter-angular-html#readme",
   "keywords": [
     "parser",
     "angular",

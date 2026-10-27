@@ -28,7 +28,7 @@
       }
     ],
     "links": {
-      "repository": "git+https://github.com/meloncholic/tree-sitter-angular-html.git"
+      "repository": "git+https://github.com/alfpricot/tree-sitter-angular-html.git"
     }
   },
   "bindings": {
