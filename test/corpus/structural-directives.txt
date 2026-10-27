@@ -1,0 +1,125 @@
+================================================================================
+ngIf with else
+================================================================================
+
+<div *ngIf="loaded; else loading"></div>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (structural_directive
+        name: (binding_name)
+        (template_binding
+          value: (identifier))
+        (template_binding
+          key: (binding_key)
+          value: (identifier))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+ngIf with a pipe and alias
+================================================================================
+
+<div *ngIf="user$ | async as user"></div>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (structural_directive
+        name: (binding_name)
+        (template_binding
+          value: (pipe_expression
+            value: (identifier)
+            name: (pipe_name))
+          alias: (identifier))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+ngFor with trackBy and locals
+================================================================================
+
+<li *ngFor="let item of items; trackBy: trackById; let i = index; let odd = odd">x</li>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (structural_directive
+        name: (binding_name)
+        (template_let
+          name: (identifier))
+        (template_binding
+          key: (binding_key)
+          value: (identifier))
+        (template_binding
+          key: (binding_key)
+          value: (identifier))
+        (template_let
+          name: (identifier)
+          value: (identifier))
+        (template_let
+          name: (identifier)
+          value: (identifier))))
+    (text)
+    (end_tag
+      (tag_name))))
+
+================================================================================
+ngFor with an alias and comma separators
+================================================================================
+
+<li *ngFor="let item of items, index as i"></li>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (structural_directive
+        name: (binding_name)
+        (template_let
+          name: (identifier))
+        (template_binding
+          key: (binding_key)
+          value: (identifier))
+        (template_alias
+          value: (identifier)
+          alias: (identifier))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+ngTemplateOutlet with a context object
+================================================================================
+
+<ng-container *ngTemplateOutlet="tpl; context: {$implicit: row}"></ng-container>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (structural_directive
+        name: (binding_name)
+        (template_binding
+          value: (identifier))
+        (template_binding
+          key: (binding_key)
+          value: (object
+            (pair
+              key: (property_identifier)
+              value: (identifier))))))
+    (end_tag
+      (tag_name))))

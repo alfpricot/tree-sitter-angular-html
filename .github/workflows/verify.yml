@@ -1,0 +1,156 @@
+# =============================================================================
+#  tree-sitter-angular-html · GitHub Actions
+# -----------------------------------------------------------------------------
+#  File                verify.yml
+#  Workflow name       Verify
+#  Triggers            pull_request, push (main), workflow_dispatch
+#  Purpose             Regenerate the parser from grammar.js and fail on any
+#                      drift in the generated parser or the committed
+#                      node-kind snapshot, lint and format-check the grammar
+#                      and tooling JavaScript, run the corpus and highlight
+#                      tests, parse every fixture and fail on any
+#                      ERROR/MISSING/zero-width node, build and test the Rust
+#                      and Node bindings, and validate the PR title. A final
+#                      aggregate job rolls every check up into a single
+#                      `Verify` status for branch rulesets to require.
+# =============================================================================
+
+name: Verify
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  # A PR title/body edit must never cancel an in-flight build of this head.
+  cancel-in-progress: ${{ github.event.action != 'edited' }}
+
+jobs:
+  pr-title:
+    name: PR title
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Validate conventional PR title
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            chore
+            revert
+            ci
+            build
+            security
+
+  verify:
+    name: Grammar, fixtures, Rust build/test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.x'
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # v1.97.0 rustc stable as of 2026-08-17 (action itself publishes no version tags)
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry and build artifacts
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Install the tree-sitter CLI
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild tree-sitter-cli
+
+      - name: Regenerate the parser from grammar.js
+        run: npx --no-install tree-sitter generate
+
+      - name: Fail if the generated parser is out of date
+        run: git diff --exit-code -- src/parser.c src/grammar.json src/node-types.json
+
+      - name: Fail if the node-kind snapshot is out of date
+        run: node tools/node-kinds.mjs --check
+
+      - name: Lint the grammar and tooling JS
+        run: npm run lint
+
+      - name: Check formatting of the grammar and tooling JS
+        run: npm run format:check
+
+      - name: Run corpus and highlight tests
+        run: npx --no-install tree-sitter test
+
+      - name: Parse every fixture and fail on ERROR/MISSING or zero-width nodes
+        run: node tools/fixture-check.mjs
+
+      - name: Format check
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Cargo build & test
+        run: cargo test
+
+  node-binding:
+    name: Node binding build/test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.x'
+
+      - name: Install dependencies and build the native addon
+        run: npm ci
+
+      - name: Run the Node binding tests
+        run: npm test
+
+  ci:
+    name: ${{ github.event_name == 'push' && 'Verify (push)' || 'Verify' }}
+    needs: [verify, node-binding, pr-title]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every job to succeed (pr-title may skip outside PRs)
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$JOB_RESULTS" | jq -e '
+            to_entries
+            | all(.value.result == "success" or (.key == "pr-title" and .value.result == "skipped"))
+          '

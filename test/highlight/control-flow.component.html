@@ -1,0 +1,28 @@
+@if (user; as u) {
+<!-- <- keyword.conditional -->
+<!--       ^ keyword -->
+<!--          ^ variable -->
+  {{ u.name }}
+} @else {
+<!--^ keyword.conditional -->
+  none
+}
+@for (item of items; track item.id) {
+<!-- <- keyword.repeat -->
+<!--  ^ variable -->
+<!--       ^ keyword -->
+<!--                 ^ keyword -->
+  {{ item }}
+} @empty {
+<!--^ keyword.repeat -->
+}
+@defer (on timer(500ms)) {
+<!-- <- keyword -->
+<!--    ^ keyword -->
+<!--       ^ function.builtin -->
+<!--             ^ number -->
+}
+@let total = 1 + 2;
+<!-- <- keyword -->
+<!-- ^ variable -->
+<!--         ^ number -->

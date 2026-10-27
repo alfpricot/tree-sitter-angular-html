@@ -1,0 +1,228 @@
+================================================================================
+if block
+================================================================================
+
+@if (loggedIn) {
+  <p>Welcome</p>
+}
+
+---
+
+(document
+  (if_block
+    condition: (identifier)
+    body: (block
+      (element
+        (start_tag
+          (tag_name))
+        (text)
+        (end_tag
+          (tag_name))))))
+
+================================================================================
+if with else-if, else and alias
+================================================================================
+
+@if (user$ | async; as user) {
+  {{ user.name }}
+} @else if (loading) {
+  Loading
+} @else {
+  Signed out
+}
+
+---
+
+(document
+  (if_block
+    condition: (pipe_expression
+      value: (identifier)
+      name: (pipe_name))
+    alias: (identifier)
+    body: (block
+      (interpolation
+        expression: (member_expression
+          object: (identifier)
+          property: (property_identifier))))
+    (else_if_block
+      condition: (identifier)
+      body: (block
+        (text)))
+    (else_block
+      body: (block
+        (text)))))
+
+================================================================================
+for block with track, context variables and empty
+================================================================================
+
+@for (item of items; track item.id; let i = $index, last = $last) {
+  <li>{{ i }}: {{ item.name }}</li>
+} @empty {
+  <li>None</li>
+}
+
+---
+
+(document
+  (for_block
+    item: (identifier)
+    collection: (identifier)
+    (for_track
+      value: (member_expression
+        object: (identifier)
+        property: (property_identifier)))
+    (for_let
+      (context_variable
+        name: (identifier)
+        value: (identifier))
+      (context_variable
+        name: (identifier)
+        value: (identifier)))
+    body: (block
+      (element
+        (start_tag
+          (tag_name))
+        (interpolation
+          expression: (identifier))
+        (text)
+        (interpolation
+          expression: (member_expression
+            object: (identifier)
+            property: (property_identifier)))
+        (end_tag
+          (tag_name))))
+    (empty_block
+      body: (block
+        (element
+          (start_tag
+            (tag_name))
+          (text)
+          (end_tag
+            (tag_name)))))))
+
+================================================================================
+switch block
+================================================================================
+
+@switch (mode) {
+  @case ('a') { <a-view /> }
+  @case ('b') { <b-view /> }
+  @default { <default-view /> }
+}
+
+---
+
+(document
+  (switch_block
+    value: (identifier)
+    body: (switch_body
+      (case_block
+        value: (string
+          (string_fragment))
+        body: (block
+          (element
+            (self_closing_tag
+              (tag_name)))))
+      (case_block
+        value: (string
+          (string_fragment))
+        body: (block
+          (element
+            (self_closing_tag
+              (tag_name)))))
+      (default_block
+        body: (block
+          (element
+            (self_closing_tag
+              (tag_name))))))))
+
+================================================================================
+let declaration
+================================================================================
+
+@let total = price * qty;
+<span>{{ total }}</span>
+
+---
+
+(document
+  (let_declaration
+    name: (identifier)
+    value: (binary_expression
+      left: (identifier)
+      right: (identifier)))
+  (element
+    (start_tag
+      (tag_name))
+    (interpolation
+      expression: (identifier))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+nested blocks inside elements
+================================================================================
+
+<ul>
+  @for (x of xs; track x) {
+    @if (x.visible) {
+      <li>{{ x }}
+    }
+  }
+</ul>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (for_block
+      item: (identifier)
+      collection: (identifier)
+      (for_track
+        value: (identifier))
+      body: (block
+        (if_block
+          condition: (member_expression
+            object: (identifier)
+            property: (property_identifier))
+          body: (block
+            (element
+              (start_tag
+                (tag_name))
+              (interpolation
+                expression: (identifier)))))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+optional end tag closed at a block end
+================================================================================
+
+<select>
+  @for (o of options; track o) {
+    <option>{{ o }}
+  }
+</select>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (for_block
+      item: (identifier)
+      collection: (identifier)
+      (for_track
+        value: (identifier))
+      body: (block
+        (element
+          (start_tag
+            (tag_name))
+          (interpolation
+            expression: (identifier)))))
+    (end_tag
+      (tag_name))))

@@ -1,0 +1,41 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <fieldset>
+    <legend i18n="@@checkoutAddress">Shipping address</legend>
+    <label for="name">Name</label>
+    <input id="name" formControlName="name" [attr.aria-invalid]="form.controls.name.invalid">
+    @if (form.controls.name.errors?.['required'] && form.controls.name.touched) {
+      <small class="error">Name is required.</small>
+    }
+
+    <label for="country">Country</label>
+    <select id="country" formControlName="country">
+      @for (country of countries; track country.code) {
+        <option [value]="country.code">{{ country.label }}
+      }
+    </select>
+  </fieldset>
+
+  <fieldset>
+    <legend>Delivery</legend>
+    @switch (form.value.delivery) {
+      @case ('express') {
+        <p>Arrives tomorrow for {{ expressFee | currency }}.</p>
+      }
+      @case ('pickup') {
+        <app-pickup-points [postcode]="form.value.postcode ?? ''" (selected)="pickupPoint = $event" />
+      }
+      @default {
+        <p>Arrives in {{ standardDays }} days.</p>
+      }
+    }
+  </fieldset>
+
+  <label>
+    <input type="checkbox" [(ngModel)]="acceptTerms" [ngModelOptions]="{standalone: true}">
+    I accept the terms &amp; conditions
+  </label>
+
+  <button type="submit" [disabled]="form.invalid || !acceptTerms || submitting">
+    {{ submitting ? 'Placing order…' : 'Place order' }}
+  </button>
+</form>
