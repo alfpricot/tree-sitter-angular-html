@@ -43,7 +43,7 @@ There are no runtime services. Template text goes to the scanner and parser, whi
 
 ## Build, test, release, and deploy
 
-The `Verify` workflow ([.github/workflows/verify.yml](.github/workflows/verify.yml)) runs on pull requests, pushes to `main`, and manual dispatch. It validates the pull request title, regenerates the parser and fails on drift in the generated files or the node-kind snapshot, lints and format-checks the JavaScript, runs the corpus, highlight and fixture checks, runs `cargo fmt`, `clippy` and `cargo test`, and builds and tests the Node binding on Linux and Windows. A final job rolls these up into one `Verify` status. Dependabot proposes npm, Cargo and GitHub Actions updates weekly against `main`. No release automation or deployment is configured; the version (`0.1.0`) is set in `package.json`, `Cargo.toml` and `tree-sitter.json`.
+The `Verify` workflow ([.github/workflows/verify.yml](.github/workflows/verify.yml)) runs on pull requests, pushes to `main`, and manual dispatch. It validates the pull request title, regenerates the parser and fails on drift in the generated files or the node-kind snapshot, lints and format-checks the JavaScript, runs the corpus, highlight and fixture checks, runs `cargo fmt`, `clippy` and `cargo test`, and builds and tests the Node binding on Linux and Windows. A final job rolls these up into one `Verify` status. Dependabot proposes npm, Cargo and GitHub Actions updates weekly against `main`. The `Release` workflow ([.github/workflows/gala-release.yml](.github/workflows/gala-release.yml)) runs [gala](https://github.com/alfpricot/gala) on pushes to `main`: from the Conventional Commits since the last `v*` tag it bumps the `Cargo.toml` version, writes `CHANGELOG.md`, commits, tags, pushes, fast-forwards `dev` to the release commit, and creates the GitHub Release (see [.gala.toml](.gala.toml)). `Cargo.toml` is the version source of truth; the committed `package.json` and `tree-sitter.json` versions are not rewritten by a release. No package publishing or deployment is configured.
 
 ## Where things live
 
@@ -55,4 +55,4 @@ The `Verify` workflow ([.github/workflows/verify.yml](.github/workflows/verify.y
 | `bindings/` | Node addon and Rust crate |
 | `test/` | Corpus, highlight and fixture tests, node-kind snapshot |
 | `tools/` | Fixture check and node-kind snapshot scripts |
-| `.github/` | `Verify` workflow, Dependabot and code owners |
+| `.github/` | `Verify` and `Release` workflows, Dependabot and code owners |

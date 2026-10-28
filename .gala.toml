@@ -1,0 +1,13 @@
+# gala release configuration. Cargo.toml holds the version that gala bumps;
+# package.json and tree-sitter.json keep their committed version and are not
+# rewritten by a release.
+kind = "app"
+manager = "cargo"
+# No registry publish is configured for this repository yet.
+publish = false
+githubRelease = true
+releaseBranches = ["main"]
+syncBranch = "dev"
+tagPrefix = "v"
+changelog = "CHANGELOG.md"
+remote = "origin"
