@@ -44,3 +44,7 @@ npm test
 - Add a corpus case or extend a fixture for every newly supported construct.
 - Keep node-kind renames for a breaking release: consumers match these names at runtime.
 - Keep each pull request to one change, and link the issue it resolves in the body.
+
+## Releases
+
+Releases are cut by gala from the Conventional Commit history when `dev` is promoted to `main`; do not bump versions or edit `CHANGELOG.md` by hand. `feat` commits bump the minor version, `fix`, `perf`, `refactor` and `revert` bump the patch version, and a `!` suffix or `BREAKING CHANGE:` footer bumps the major version. The version lives in `Cargo.toml`. The `Release` workflow needs the `RELEASE_DEPLOY_KEY` secret and a matching write deploy key that is a bypass actor on the `main` and `dev` rulesets and the `v*` tag ruleset. No package registry publish is configured.
