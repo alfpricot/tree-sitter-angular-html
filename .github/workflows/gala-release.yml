@@ -4,7 +4,7 @@
 #  File                gala-release.yml
 #  Workflow name       Gala release
 #  Type                Entrypoint (runs in this repo only)
-#  Triggers            push (main), workflow_dispatch
+#  Triggers            push (main), workflow_dispatch (releases from main only)
 #  Purpose             Runs gala to cut a release from the Conventional Commits
 #                      on main: bumps the version in Cargo.toml, package.json,
 #                      and tree-sitter.json, refreshes package-lock.json,
@@ -47,6 +47,8 @@ env:
 jobs:
   release:
     name: gala release
+    # A manual dispatch from any other branch must never cut a release.
+    if: github.ref == 'refs/heads/main'
     # Job-level elevation: the git pushes authenticate with the deploy key, so
     # contents stays read; actions: write is only for dispatching release.yml.
     permissions:

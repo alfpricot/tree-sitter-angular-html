@@ -1,0 +1,50 @@
+# =============================================================================
+#  tree-sitter-angular-html · GitHub Actions
+# -----------------------------------------------------------------------------
+#  File                .github/actions/install-release-tool/action.yml
+#  Type                Composite action (repository-local)
+#  Purpose             Download a pinned release tarball, verify its SHA-256
+#                      against the release's published checksums file, and
+#                      install the binary into ~/.local/bin. The Verify jobs
+#                      share it so the download-and-verify procedure lives in
+#                      one place instead of one copy per job.
+# =============================================================================
+
+name: Install a pinned release tool
+description: Download a release tarball, verify its checksum, and install the binary into ~/.local/bin
+
+inputs:
+  repo:
+    description: GitHub repository publishing the release, as owner/name
+    required: true
+  tool:
+    description: Binary name to extract from the tarball and install
+    required: true
+  version:
+    description: Release version without the leading v
+    required: true
+  asset:
+    description: Release asset file name of the tarball
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install ${{ inputs.tool }}
+      shell: bash
+      env:
+        REPO: ${{ inputs.repo }}
+        TOOL: ${{ inputs.tool }}
+        VERSION: ${{ inputs.version }}
+        ASSET: ${{ inputs.asset }}
+      run: |
+        set -euo pipefail
+        tmp="$(mktemp -d)"
+        trap 'rm -rf "$tmp"' EXIT
+        base="https://github.com/${REPO}/releases/download/v${VERSION}"
+        curl -sSfL -o "$tmp/$ASSET" "$base/$ASSET"
+        curl -sSfL -o "$tmp/checksums.txt" "$base/${TOOL}_${VERSION}_checksums.txt"
+        ( cd "$tmp" && grep " $ASSET\$" checksums.txt | sha256sum --check - )
+        mkdir -p "$HOME/.local/bin"
+        tar -xzf "$tmp/$ASSET" -C "$tmp" "$TOOL"
+        install -m 0755 "$tmp/$TOOL" "$HOME/.local/bin/$TOOL"
