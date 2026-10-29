@@ -1,12 +1,5 @@
 ## Custom
 
-# Root markdown is local working material unless listed below.
-/*.md
-!/README.md
-!/ARCHITECTURE.md
-!/CONTRIBUTING.md
-!/SECURITY.md
-
 tmp/
 .tmp/
 Cargo.lock

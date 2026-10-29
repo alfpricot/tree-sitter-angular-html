@@ -2,26 +2,32 @@
 #  tree-sitter-angular-html · GitHub Actions
 # -----------------------------------------------------------------------------
 #  File                gala-release.yml
-#  Workflow name       Release
+#  Workflow name       Gala release
 #  Type                Entrypoint (runs in this repo only)
 #  Triggers            push (main), workflow_dispatch
 #  Purpose             Runs gala to cut a release from the Conventional Commits
-#                      on main: bumps the Cargo.toml version, writes the
-#                      CHANGELOG.md entry, commits it, creates the v* tag,
-#                      pushes the commit and tag together, fast-forwards dev to
-#                      the release commit, and creates the GitHub Release.
-#                      When no release is due the run does nothing.
-#                      This repository has no publish workflow, so a release
-#                      stops at the GitHub Release; nothing is published to
-#                      crates.io or npm.
+#                      on main: bumps the version in Cargo.toml, package.json,
+#                      and tree-sitter.json, refreshes package-lock.json,
+#                      regenerates the parser (which embeds the
+#                      tree-sitter.json version), writes the CHANGELOG.md
+#                      entry, commits it, creates the v* tag, pushes the commit
+#                      and tag together, and fast-forwards dev to the release
+#                      commit. When no release is due the run does nothing.
+#
 #                      The pushes go over the RELEASE_DEPLOY_KEY deploy key
 #                      because the rulesets block direct pushes to main and dev
 #                      and creating v* tags; the deploy key is the ruleset
-#                      bypass actor. The release commit carries a skip-ci marker
-#                      so it does not trigger this workflow again.
+#                      bypass actor. The release commit carries a skip-ci
+#                      marker so it does not trigger this workflow again, and
+#                      that marker can also keep the tag push from firing
+#                      release.yml, so when gala reports released=true this
+#                      workflow dispatches release.yml for the new tag itself,
+#                      on the tag ref so the publish run keeps its npm
+#                      provenance. release.yml publishes to crates.io, npm, and
+#                      GitHub Packages and creates the GitHub Release.
 # =============================================================================
 
-name: Release
+name: Gala release
 
 on:
   push:
@@ -29,19 +35,24 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: release
+  group: gala-release
   cancel-in-progress: false
 
 permissions:
   contents: read
 
+env:
+  GALA_VERSION: '0.3.1'
+
 jobs:
   release:
     name: gala release
-    # Job-level elevation: creating the GitHub Release through GITHUB_TOKEN
-    # needs write access (the git pushes authenticate with the deploy key).
+    # Job-level elevation: the git pushes authenticate with the deploy key, so
+    # contents stays read; actions: write is only for dispatching release.yml.
     permissions:
-      contents: write
+      contents: read
+      actions: write
+      packages: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -52,15 +63,6 @@ jobs:
           # origin becomes an SSH remote authenticated by the deploy key, so
           # gala's atomic push and dev sync use the ruleset bypass.
           ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
-
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
-        with:
-          go-version: '1.27.3'
-          cache: false
-
-      - name: Install gala
-        run: go install github.com/alfpricot/gala/cmd/gala@v0.2.0
 
       - name: Install Rust toolchain
         # gala's cargo manager runs cargo to refresh the lockfile.
@@ -73,7 +75,41 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Set up Node.js
+        # gala refreshes package-lock.json with npm, and its postBump hook
+        # regenerates the parser with the tree-sitter-cli pinned here.
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.x'
+          # Resolves @alfpricot/gala from GitHub Packages; every other
+          # package still comes from the public npm registry.
+          registry-url: https://npm.pkg.github.com
+          scope: '@alfpricot'
+
+      - name: Install gala
+        # The prebuilt gala binary from GitHub Packages; the token needs
+        # packages: read, and each gala package grants this repository access.
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+        run: npm install --global "@alfpricot/gala@${GALA_VERSION}"
+
+      - name: Install the tree-sitter CLI
+        # --ignore-scripts skips this package's own node-gyp-build install
+        # script, which also skips the CLI's binary download; the rebuild
+        # fetches it.
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild tree-sitter-cli
+
       - name: Release
+        id: gala
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: gala release
+
+      - name: Dispatch the publish workflow for the new tag
+        if: steps.gala.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.gala.outputs.tag }}
+        run: gh workflow run release.yml --ref "$TAG" -f "tag=${TAG}"
