@@ -3,25 +3,33 @@
 # -----------------------------------------------------------------------------
 #  File                verify.yml
 #  Workflow name       Verify
-#  Triggers            pull_request, push (main), workflow_dispatch
+#  Type                Entrypoint (runs in this repo only)
+#  Triggers            pull_request
+#                      push (dev, main)
+#                      workflow_dispatch
 #  Purpose             Regenerate the parser from grammar.js and fail on any
 #                      drift in the generated parser or the committed
 #                      node-kind snapshot, lint and format-check the grammar
 #                      and tooling JavaScript, run the corpus and highlight
 #                      tests, parse every fixture and fail on any
 #                      ERROR/MISSING/zero-width node, build and test the Rust
-#                      and Node bindings, and validate the PR title. A final
-#                      aggregate job rolls every check up into a single
-#                      `Verify` status for branch rulesets to require.
+#                      and Node bindings, validate the PR title, scan the
+#                      working tree and Git history for secrets, and lint
+#                      workflow/YAML files. A final aggregate job rolls every
+#                      check up into a single `Verify` status for branch
+#                      rulesets to require.
+#
+#                      workflow_dispatch lets a maintainer run the checks by
+#                      hand on any branch.
 # =============================================================================
 
 name: Verify
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited, ready_for_review]
+    types: [opened, synchronize, reopened, edited, ready_for_review, converted_to_draft]
   push:
-    branches: [main]
+    branches: [dev, main]
   workflow_dispatch:
 
 permissions:
@@ -59,6 +67,58 @@ jobs:
             ci
             build
             security
+
+  secret-scanning:
+    name: Secret scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GITLEAKS_VERSION: '8.30.1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Cache Gitleaks
+        id: cache-gitleaks
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/bin/gitleaks
+          key: gitleaks-${{ env.GITLEAKS_VERSION }}-linux-x64
+
+      - name: Install Gitleaks
+        if: steps.cache-gitleaks.outputs.cache-hit != 'true'
+        env:
+          VERSION: ${{ env.GITLEAKS_VERSION }}
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}"
+          asset="gitleaks_${VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$tmp/$asset" "$base/$asset"
+          curl -sSfL -o "$tmp/checksums.txt" "$base/gitleaks_${VERSION}_checksums.txt"
+          ( cd "$tmp" && grep " $asset\$" checksums.txt | sha256sum --check - )
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf "$tmp/$asset" -C "$tmp" gitleaks
+          install -m 0755 "$tmp/gitleaks" "$HOME/.local/bin/gitleaks"
+
+      - name: Scan the working tree with Gitleaks
+        run: $HOME/.local/bin/gitleaks detect --no-git --source . --exit-code 1 --report-format json --report-path gitleaks-report.json
+
+      - name: Scan Git history with Gitleaks
+        run: $HOME/.local/bin/gitleaks detect --source . --exit-code 1 --report-format json --report-path gitleaks-history-report.json
+
+      - name: Upload Gitleaks report on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          if-no-files-found: ignore
 
   verify:
     name: Grammar, fixtures, Rust build/test
@@ -152,9 +212,77 @@ jobs:
       - name: Run the Node binding tests
         run: npm test
 
+  workflow-meta:
+    name: Workflow and YAML checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      ACTIONLINT_VERSION: '1.7.12'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Cache actionlint
+        id: cache-actionlint
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/bin/actionlint
+          key: actionlint-linux-amd64-${{ env.ACTIONLINT_VERSION }}
+
+      - name: Install actionlint
+        if: steps.cache-actionlint.outputs.cache-hit != 'true'
+        env:
+          VERSION: ${{ env.ACTIONLINT_VERSION }}
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          base="https://github.com/rhysd/actionlint/releases/download/v${VERSION}"
+          asset="actionlint_${VERSION}_linux_amd64.tar.gz"
+          curl -sSfL -o "$tmp/$asset" "$base/$asset"
+          curl -sSfL -o "$tmp/checksums.txt" "$base/actionlint_${VERSION}_checksums.txt"
+          ( cd "$tmp" && grep " $asset\$" checksums.txt | sha256sum --check - )
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf "$tmp/$asset" -C "$tmp" actionlint
+          install -m 0755 "$tmp/actionlint" "$HOME/.local/bin/actionlint"
+
+      - name: Run actionlint
+        run: $HOME/.local/bin/actionlint -color -ignore 'SC[0-9]+:(info|style):'
+
+      - name: Validate YAML files
+        run: |
+          python3 -m pip install --disable-pip-version-check --quiet pyyaml
+          python3 - <<'PYEOF'
+          import sys
+          import yaml
+          from pathlib import Path
+
+          ignored = {".git", "node_modules", "target", "dist"}
+          failures = []
+          for path in Path(".").rglob("*.y*ml"):
+              if any(part in ignored for part in path.parts):
+                  continue
+              try:
+                  with path.open("r", encoding="utf-8") as f:
+                      list(yaml.safe_load_all(f))
+              except yaml.YAMLError as exc:
+                  failures.append(f"{path}: {exc}")
+
+          if failures:
+              print("Invalid YAML found:")
+              for failure in failures:
+                  print(f"  {failure}")
+              sys.exit(1)
+          print("All YAML files parsed cleanly.")
+          PYEOF
+
   ci:
+    # A dispatched run must report as `Verify` too: it is how a
+    # GITHUB_TOKEN-pushed release or sync branch satisfies the required check.
     name: ${{ github.event_name == 'push' && 'Verify (push)' || 'Verify' }}
-    needs: [verify, node-binding, pr-title]
+    needs: [verify, node-binding, secret-scanning, pr-title, workflow-meta]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
