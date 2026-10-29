@@ -195,6 +195,66 @@ script and style raw text
       (tag_name))))
 
 ================================================================================
+raw text ends at a delimiter right after a failed partial match
+================================================================================
+
+<script>a<</script>
+<style>x</s</style>
+<p>after</p>
+
+---
+
+(document
+  (script_element
+    (start_tag
+      (tag_name))
+    (raw_text)
+    (end_tag
+      (tag_name)))
+  (style_element
+    (start_tag
+      (tag_name))
+    (raw_text)
+    (end_tag
+      (tag_name)))
+  (element
+    (start_tag
+      (tag_name))
+    (text)
+    (end_tag
+      (tag_name))))
+
+================================================================================
+a longer tag name after the raw text delimiter is raw text
+================================================================================
+
+<script>var s = "</scripts>"; f();</script>
+<style>a</styles>b</style>
+<p>after</p>
+
+---
+
+(document
+  (script_element
+    (start_tag
+      (tag_name))
+    (raw_text)
+    (end_tag
+      (tag_name)))
+  (style_element
+    (start_tag
+      (tag_name))
+    (raw_text)
+    (end_tag
+      (tag_name)))
+  (element
+    (start_tag
+      (tag_name))
+    (text)
+    (end_tag
+      (tag_name))))
+
+================================================================================
 erroneous end tag
 ================================================================================
 

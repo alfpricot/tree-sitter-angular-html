@@ -3,7 +3,7 @@ version: 2
 updates:
   - package-ecosystem: cargo
     directory: /
-    target-branch: main
+    target-branch: dev
     versioning-strategy: auto
     schedule:
       interval: weekly
@@ -33,7 +33,7 @@ updates:
 
   - package-ecosystem: github-actions
     directory: /
-    target-branch: main
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
@@ -62,7 +62,7 @@ updates:
 
   - package-ecosystem: npm
     directory: /
-    target-branch: main
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday

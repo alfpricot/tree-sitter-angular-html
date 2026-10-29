@@ -1,6 +1,6 @@
 # tree-sitter-angular-html
 
-[![Verify](https://github.com/meloncholic/tree-sitter-angular-html/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/meloncholic/tree-sitter-angular-html/actions/workflows/verify.yml)
+[![Verify](https://github.com/alfpricot/tree-sitter-angular-html/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/alfpricot/tree-sitter-angular-html/actions/workflows/verify.yml)
 
 A [tree-sitter](https://tree-sitter.github.io/tree-sitter/) grammar for Angular component templates: `*.component.html` files and the contents of inline `template:` strings. The HTML layer is built in rather than extended from `tree-sitter-html`, because Angular changes how HTML text is lexed: `{{`, `@` followed by a letter, and `}` are syntax, not text. HTML node names follow `tree-sitter-html` (`element`, `start_tag`, `attribute`, `quoted_attribute_value`, ...) so existing HTML queries mostly carry over. A template the grammar cannot parse produces `ERROR` nodes, never a permissive best-effort tree.
 
@@ -9,8 +9,8 @@ A [tree-sitter](https://tree-sitter.github.io/tree-sitter/) grammar for Angular 
 Install from the Git repository:
 
 ```sh
-npm install github:meloncholic/tree-sitter-angular-html
-cargo add tree-sitter-angular-html --git https://github.com/meloncholic/tree-sitter-angular-html
+npm install github:alfpricot/tree-sitter-angular-html
+cargo add tree-sitter-angular-html --git https://github.com/alfpricot/tree-sitter-angular-html
 ```
 
 The generated parser (`src/parser.c`, `src/grammar.json`, `src/node-types.json`) is committed, so consumers build the C parser without the tree-sitter CLI. `src/scanner.c` must be compiled with it: it tracks open elements and block braces, and lexes text, tag names and quoted attribute text. The C symbol is `tree_sitter_angular_html`, so this grammar links alongside grammars that export `tree_sitter_html` or `tree_sitter_angular`.
