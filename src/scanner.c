@@ -43,7 +43,15 @@ enum TokenType {
 typedef Array(char) Tag;
 
 typedef struct {
+    // The open-element stack, serialized as the scanner's state.
     Array(Tag) tags;
+    // Recycled tag buffers. The parser restores the scanner state before
+    // every external-token lex attempt (ts_parser__lex calls deserialize
+    // once per token), so freeing a buffer here only to re-allocate it on
+    // the next token would put a malloc and a free on the hot path of every
+    // element. Buffers are pooled instead: the spare list holds capacity
+    // only and is never serialized.
+    Array(Tag) spare;
 } Scanner;
 
 static const char *const VOID_TAGS[] = {
@@ -70,8 +78,14 @@ static inline void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
 static inline void skip(TSLexer *lexer) { lexer->advance(lexer, true); }
 
 static bool tag_is(const Tag *tag, const char *name) {
-    size_t length = strlen(name);
-    return tag->size == length && memcmp(tag->contents, name, length) == 0;
+    // Byte-wise against the known tag length instead of memcmp(strlen(name)):
+    // tag_in calls this once per name of a 23-30 entry list, and strlen is a
+    // libc call for every entry. The loop stops at the name's terminator, so
+    // a name shorter than the tag never reads past its end.
+    for (uint32_t i = 0; i < tag->size; i++) {
+        if (name[i] == '\0' || name[i] != tag->contents[i]) return false;
+    }
+    return name[tag->size] == '\0';
 }
 
 static bool tag_in(const Tag *tag, const char *const *names) {
@@ -110,14 +124,31 @@ static inline Tag *top(Scanner *scanner) {
     return scanner->tags.size > 0 ? array_back(&scanner->tags) : NULL;
 }
 
-static void pop_tag(Scanner *scanner) {
-    Tag tag = array_pop(&scanner->tags);
-    array_delete(&tag);
+// A tag-name buffer of at least the usual tag-name length, taken from the
+// spare list when one is available so that a steady-state parse never
+// allocates or frees a tag buffer.
+static Tag take_tag(Scanner *scanner, uint32_t length) {
+    Tag tag = array_new();
+    if (scanner->spare.size > 0) tag = array_pop(&scanner->spare);
+    tag.size = 0;
+    array_reserve(&tag, length);
+    return tag;
 }
 
-static void clear_tags(Scanner *scanner) {
+// Returns a buffer to the spare list. Popping an element and discarding a
+// scanned name release their buffer this way instead of freeing it, so the
+// next state re-uses the capacity instead of asking the allocator again.
+static void release_tag(Scanner *scanner, Tag tag) {
+    if (tag.contents) array_push(&scanner->spare, tag);
+}
+
+static void pop_tag(Scanner *scanner) { release_tag(scanner, array_pop(&scanner->tags)); }
+
+// Moves every live buffer to the spare list and empties the stack. Used by
+// deserialize, which rebuilds the stack from the serialized state.
+static void recycle_tags(Scanner *scanner) {
     for (uint32_t i = 0; i < scanner->tags.size; i++) {
-        array_delete(&scanner->tags.contents[i]);
+        release_tag(scanner, scanner->tags.contents[i]);
     }
     array_clear(&scanner->tags);
 }
@@ -129,15 +160,45 @@ static bool has_block_marker(Scanner *scanner) {
     return false;
 }
 
-static inline bool is_tag_name_char(int32_t c) {
-    return iswalnum(c) || c == '-' || c == ':' || c == '_' || c == '.';
+static inline bool is_ascii_alpha(int32_t c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-static Tag scan_tag_name(TSLexer *lexer) {
-    Tag name = array_new();
+// Whitespace test used on the scan hot path. ASCII is handled inline, so the
+// locale-dependent iswspace lookup only runs for non-ASCII input (where the
+// grammar still accepts Unicode whitespace as an extra).
+static inline bool is_space(int32_t c) {
+    return c == ' ' || (c >= '\t' && c <= '\r') || (c >= 128 && iswspace(c));
+}
+
+// `towupper` with the ASCII case inlined: tag names and the raw-text
+// delimiters (`</SCRIPT`, `</STYLE`) are ASCII, so the locale lookup only
+// runs for non-ASCII input.
+static inline int32_t upper(int32_t c) {
+    if (c < 128) return (c >= 'a' && c <= 'z') ? c - ('a' - 'A') : c;
+    return towupper(c);
+}
+
+// Tag-name and markup-start tests, likewise: the ASCII case is by far the
+// common one and needs no library call.
+static inline bool is_tag_name_char(int32_t c) {
+    return is_ascii_alpha(c) || (c >= '0' && c <= '9') || c == '-' || c == ':' || c == '_' ||
+           c == '.' || (c >= 128 && iswalnum(c));
+}
+
+static inline bool starts_markup(int32_t c) {
+    return is_ascii_alpha(c) || c == '/' || c == '!' || c == '?' || (c >= 128 && iswalpha(c));
+}
+
+// Scans an upper-cased tag name into a pooled buffer. The caller either
+// pushes it onto the stack (transferring ownership) or releases it back.
+static Tag scan_tag_name(Scanner *scanner, TSLexer *lexer) {
+    // 16 bytes covers every tag name except long custom element names,
+    // which grow the buffer once and then reuse it from the pool.
+    Tag name = take_tag(scanner, 16);
     while (is_tag_name_char(lexer->lookahead)) {
         int32_t c = lexer->lookahead;
-        char byte = c < 0x80 ? (char)towupper(c) : (char)(0x80 | (c & 0x7f));
+        char byte = c < 0x80 ? (char)upper(c) : (char)(0x80 | (c & 0x7f));
         array_push(&name, byte);
         advance(lexer);
     }
@@ -163,8 +224,12 @@ static unsigned serialize(Scanner *scanner, char *buffer) {
     return size;
 }
 
+// Restores the state saved with an external token. The parser calls this
+// before every external-token lex attempt, once per token, so it must not
+// allocate in the steady state: the live buffers are recycled into the
+// spare list and refilled in place.
 static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
-    clear_tags(scanner);
+    recycle_tags(scanner);
     if (length == 0) return;
 
     uint16_t serialized = 0;
@@ -177,10 +242,9 @@ static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
 
     array_reserve(&scanner->tags, total);
     for (uint16_t i = 0; i < serialized; i++) {
-        Tag tag = array_new();
         unsigned tag_length = (uint8_t)buffer[size++];
+        Tag tag = take_tag(scanner, tag_length);
         if (tag_length > 0) {
-            array_reserve(&tag, tag_length);
             memcpy(tag.contents, &buffer[size], tag_length);
             tag.size = tag_length;
             size += tag_length;
@@ -189,7 +253,7 @@ static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
     }
     // Entries that did not fit in the buffer come back as unnamed elements.
     for (uint16_t i = serialized; i < total; i++) {
-        Tag tag = array_new();
+        Tag tag = take_tag(scanner, 1);
         array_push(&tag, '?');
         array_push(&scanner->tags, tag);
     }
@@ -234,7 +298,7 @@ static bool scan_raw_text(Scanner *scanner, TSLexer *lexer) {
     size_t matched = 0;
     bool has_content = false;
     while (!lexer->eof(lexer)) {
-        if ((int32_t)towupper(lexer->lookahead) == delimiter[matched]) {
+        if (upper(lexer->lookahead) == delimiter[matched]) {
             matched++;
             if (matched == delimiter_length) break;
             advance(lexer);
@@ -261,10 +325,10 @@ static bool scan_implicit_end_tag(Scanner *scanner, TSLexer *lexer) {
         advance(lexer);
     }
 
-    Tag name = scan_tag_name(lexer);
+    Tag name = scan_tag_name(scanner, lexer);
     bool at_eof = lexer->eof(lexer);
     if (name.size == 0 && !at_eof) {
-        array_delete(&name);
+        release_tag(scanner, name);
         return false;
     }
 
@@ -290,7 +354,7 @@ static bool scan_implicit_end_tag(Scanner *scanner, TSLexer *lexer) {
             close = !tag_can_contain(parent, &name);
         }
     }
-    array_delete(&name);
+    release_tag(scanner, name);
 
     if (close) {
         pop_tag(scanner);
@@ -301,9 +365,9 @@ static bool scan_implicit_end_tag(Scanner *scanner, TSLexer *lexer) {
 }
 
 static bool scan_start_tag_name(Scanner *scanner, TSLexer *lexer) {
-    Tag name = scan_tag_name(lexer);
+    Tag name = scan_tag_name(scanner, lexer);
     if (name.size == 0) {
-        array_delete(&name);
+        release_tag(scanner, name);
         return false;
     }
     if (tag_is(&name, "SCRIPT")) {
@@ -318,9 +382,9 @@ static bool scan_start_tag_name(Scanner *scanner, TSLexer *lexer) {
 }
 
 static bool scan_end_tag_name(Scanner *scanner, TSLexer *lexer) {
-    Tag name = scan_tag_name(lexer);
+    Tag name = scan_tag_name(scanner, lexer);
     if (name.size == 0) {
-        array_delete(&name);
+        release_tag(scanner, name);
         return false;
     }
     Tag *parent = top(scanner);
@@ -330,7 +394,7 @@ static bool scan_end_tag_name(Scanner *scanner, TSLexer *lexer) {
     } else {
         lexer->result_symbol = ERRONEOUS_END_TAG_NAME;
     }
-    array_delete(&name);
+    release_tag(scanner, name);
     return true;
 }
 
@@ -360,10 +424,6 @@ static bool scan_quoted_text(TSLexer *lexer, int32_t quote, enum TokenType symbo
     if (!has_content) return false;
     lexer->result_symbol = symbol;
     return true;
-}
-
-static inline bool is_ascii_alpha(int32_t c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
 static inline bool is_ascii_digit(int32_t c) { return c >= '0' && c <= '9'; }
@@ -407,10 +467,6 @@ static bool scan_entity_tail(TSLexer *lexer) {
     return length >= 2 && length <= 32 && lexer->lookahead == ';';
 }
 
-static inline bool starts_markup(int32_t c) {
-    return iswalpha(c) || c == '/' || c == '!' || c == '?';
-}
-
 // Element and block content. Leading and trailing whitespace is left to the
 // grammar's extras, as in tree-sitter-html.
 static bool scan_text(TSLexer *lexer, bool has_content) {
@@ -430,7 +486,7 @@ static bool scan_text(TSLexer *lexer, bool has_content) {
         } else if (c == '&') {
             advance(lexer);
             if (scan_entity_tail(lexer)) break;
-        } else if (iswspace(c)) {
+        } else if (is_space(c)) {
             advance(lexer);
             continue;
         } else {
@@ -469,7 +525,7 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
         }
     }
 
-    while (iswspace(lexer->lookahead)) skip(lexer);
+    while (is_space(lexer->lookahead)) skip(lexer);
 
     switch (lexer->lookahead) {
         case '<':
@@ -541,6 +597,7 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
 void *tree_sitter_angular_html_external_scanner_create(void) {
     Scanner *scanner = (Scanner *)ts_calloc(1, sizeof(Scanner));
     array_init(&scanner->tags);
+    array_init(&scanner->spare);
     return scanner;
 }
 
@@ -560,7 +617,12 @@ void tree_sitter_angular_html_external_scanner_deserialize(void *payload, const 
 
 void tree_sitter_angular_html_external_scanner_destroy(void *payload) {
     Scanner *scanner = (Scanner *)payload;
-    clear_tags(scanner);
+    // Pool the live buffers, then free every pooled buffer once.
+    recycle_tags(scanner);
+    for (uint32_t i = 0; i < scanner->spare.size; i++) {
+        array_delete(&scanner->spare.contents[i]);
+    }
+    array_delete(&scanner->spare);
     array_delete(&scanner->tags);
     ts_free(scanner);
 }
