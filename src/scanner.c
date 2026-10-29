@@ -236,8 +236,15 @@ static bool scan_raw_text(Scanner *scanner, TSLexer *lexer) {
     while (!lexer->eof(lexer)) {
         if ((int32_t)towupper(lexer->lookahead) == delimiter[matched]) {
             matched++;
-            if (matched == delimiter_length) break;
             advance(lexer);
+            if (matched < delimiter_length) continue;
+            // Only an end tag whose name stops here closes the element, so
+            // `</scripts>` stays content, as in the HTML tokenizer.
+            int32_t next = lexer->lookahead;
+            if (lexer->eof(lexer) || iswspace(next) || next == '/' || next == '>') break;
+            matched = 0;
+            lexer->mark_end(lexer);
+            has_content = true;
         } else if (matched > 0) {
             // The failed prefix is content. The delimiter's only `<` is its
             // first character, so retest this one as a new start instead of
