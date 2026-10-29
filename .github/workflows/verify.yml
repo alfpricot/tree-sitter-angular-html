@@ -27,7 +27,7 @@ name: Verify
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited, ready_for_review, converted_to_draft]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
   push:
     branches: [dev, main]
   workflow_dispatch:
@@ -91,20 +91,12 @@ jobs:
 
       - name: Install Gitleaks
         if: steps.cache-gitleaks.outputs.cache-hit != 'true'
-        env:
-          VERSION: ${{ env.GITLEAKS_VERSION }}
-        run: |
-          set -euo pipefail
-          tmp="$(mktemp -d)"
-          trap 'rm -rf "$tmp"' EXIT
-          base="https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}"
-          asset="gitleaks_${VERSION}_linux_x64.tar.gz"
-          curl -sSfL -o "$tmp/$asset" "$base/$asset"
-          curl -sSfL -o "$tmp/checksums.txt" "$base/gitleaks_${VERSION}_checksums.txt"
-          ( cd "$tmp" && grep " $asset\$" checksums.txt | sha256sum --check - )
-          mkdir -p "$HOME/.local/bin"
-          tar -xzf "$tmp/$asset" -C "$tmp" gitleaks
-          install -m 0755 "$tmp/gitleaks" "$HOME/.local/bin/gitleaks"
+        uses: ./.github/actions/install-release-tool
+        with:
+          repo: gitleaks/gitleaks
+          tool: gitleaks
+          version: ${{ env.GITLEAKS_VERSION }}
+          asset: gitleaks_${{ env.GITLEAKS_VERSION }}_linux_x64.tar.gz
 
       - name: Scan the working tree with Gitleaks
         run: $HOME/.local/bin/gitleaks detect --no-git --source . --exit-code 1 --report-format json --report-path gitleaks-report.json
@@ -117,7 +109,11 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gitleaks-report
-          path: gitleaks-report.json
+          # The history scan is often the step that fails, so upload both
+          # reports — the working-tree one alone can be empty.
+          path: |
+            gitleaks-report.json
+            gitleaks-history-report.json
           if-no-files-found: ignore
 
   verify:
@@ -233,20 +229,12 @@ jobs:
 
       - name: Install actionlint
         if: steps.cache-actionlint.outputs.cache-hit != 'true'
-        env:
-          VERSION: ${{ env.ACTIONLINT_VERSION }}
-        run: |
-          set -euo pipefail
-          tmp="$(mktemp -d)"
-          trap 'rm -rf "$tmp"' EXIT
-          base="https://github.com/rhysd/actionlint/releases/download/v${VERSION}"
-          asset="actionlint_${VERSION}_linux_amd64.tar.gz"
-          curl -sSfL -o "$tmp/$asset" "$base/$asset"
-          curl -sSfL -o "$tmp/checksums.txt" "$base/actionlint_${VERSION}_checksums.txt"
-          ( cd "$tmp" && grep " $asset\$" checksums.txt | sha256sum --check - )
-          mkdir -p "$HOME/.local/bin"
-          tar -xzf "$tmp/$asset" -C "$tmp" actionlint
-          install -m 0755 "$tmp/actionlint" "$HOME/.local/bin/actionlint"
+        uses: ./.github/actions/install-release-tool
+        with:
+          repo: rhysd/actionlint
+          tool: actionlint
+          version: ${{ env.ACTIONLINT_VERSION }}
+          asset: actionlint_${{ env.ACTIONLINT_VERSION }}_linux_amd64.tar.gz
 
       - name: Run actionlint
         run: $HOME/.local/bin/actionlint -color -ignore 'SC[0-9]+:(info|style):'
