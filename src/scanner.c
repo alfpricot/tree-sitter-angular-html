@@ -238,6 +238,13 @@ static bool scan_raw_text(Scanner *scanner, TSLexer *lexer) {
             matched++;
             if (matched == delimiter_length) break;
             advance(lexer);
+        } else if (matched > 0) {
+            // The failed prefix is content. The delimiter's only `<` is its
+            // first character, so retest this one as a new start instead of
+            // consuming it: `a<</script>` must still end at `</script>`.
+            matched = 0;
+            lexer->mark_end(lexer);
+            has_content = true;
         } else {
             matched = 0;
             advance(lexer);
