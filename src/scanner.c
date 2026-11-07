@@ -67,10 +67,17 @@ static const char *const OPTIONAL_END_TAGS[] = {
 };
 
 static const char *const NOT_ALLOWED_IN_PARAGRAPHS[] = {
-    "ADDRESS", "ARTICLE", "ASIDE",  "BLOCKQUOTE", "DETAILS", "DIV",    "DL",      "FIELDSET",
-    "FIGCAPTION", "FIGURE", "FOOTER", "FORM",     "H1",      "H2",     "H3",      "H4",
-    "H5",      "H6",      "HEADER", "HR",         "MAIN",    "MENU",   "NAV",     "OL",
-    "P",       "PRE",     "SECTION", "TABLE",     "UL",      NULL,
+    "ADDRESS", "ARTICLE", "ASIDE",  "BLOCKQUOTE", "DETAILS", "DIALOG", "DIV",     "DL",
+    "FIELDSET", "FIGCAPTION", "FIGURE", "FOOTER",   "FORM",    "H1",     "H2",      "H3",
+    "H4",      "H5",      "H6",     "HEADER",       "HGROUP",  "HR",     "MAIN",    "MENU",
+    "NAV",     "OL",      "P",      "PRE",          "SEARCH",  "SECTION", "TABLE",  "UL",
+    NULL,
+};
+
+// Elements that start a new part of a table, so an open caption, row group,
+// row, or cell cannot contain them.
+static const char *const TABLE_PARTS[] = {
+    "CAPTION", "COL", "COLGROUP", "THEAD", "TBODY", "TFOOT", NULL,
 };
 
 static inline void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
@@ -113,9 +120,17 @@ static bool tag_can_contain(const Tag *parent, const Tag *child) {
     }
     if (tag_is(parent, "OPTGROUP")) return !tag_is(child, "OPTGROUP");
     if (tag_is(parent, "OPTION")) return !tag_is(child, "OPTION") && !tag_is(child, "OPTGROUP");
-    if (tag_is(parent, "TR")) return !tag_is(child, "TR");
+    if (tag_is(parent, "CAPTION")) {
+        return !tag_in(child, TABLE_PARTS) && !tag_is(child, "TR") && !tag_is(child, "TD") &&
+               !tag_is(child, "TH");
+    }
+    if (tag_is(parent, "THEAD") || tag_is(parent, "TBODY") || tag_is(parent, "TFOOT")) {
+        return !tag_in(child, TABLE_PARTS);
+    }
+    if (tag_is(parent, "TR")) return !tag_is(child, "TR") && !tag_in(child, TABLE_PARTS);
     if (tag_is(parent, "TD") || tag_is(parent, "TH")) {
-        return !tag_is(child, "TD") && !tag_is(child, "TH") && !tag_is(child, "TR");
+        return !tag_is(child, "TD") && !tag_is(child, "TH") && !tag_is(child, "TR") &&
+               !tag_in(child, TABLE_PARTS);
     }
     return true;
 }
@@ -135,11 +150,23 @@ static Tag take_tag(Scanner *scanner, uint32_t length) {
     return tag;
 }
 
+// Slack kept in the spare list beyond one buffer per open element. The cap
+// follows the live stack depth, so deserialize (which releases every live
+// buffer and takes them all back) never frees and re-allocates, while a
+// parser that finishes a deeply nested document sheds the surplus as the
+// stack shrinks.
+#define MAX_SPARE_TAGS 64
+
 // Returns a buffer to the spare list. Popping an element and discarding a
 // scanned name release their buffer this way instead of freeing it, so the
 // next state re-uses the capacity instead of asking the allocator again.
 static void release_tag(Scanner *scanner, Tag tag) {
-    if (tag.contents) array_push(&scanner->spare, tag);
+    if (!tag.contents) return;
+    if (scanner->spare.size >= MAX_SPARE_TAGS + scanner->tags.size) {
+        array_delete(&tag);
+        return;
+    }
+    array_push(&scanner->spare, tag);
 }
 
 static void pop_tag(Scanner *scanner) { release_tag(scanner, array_pop(&scanner->tags)); }
@@ -171,12 +198,11 @@ static inline bool is_space(int32_t c) {
     return c == ' ' || (c >= '\t' && c <= '\r') || (c >= 128 && iswspace(c));
 }
 
-// `towupper` with the ASCII case inlined: tag names and the raw-text
-// delimiters (`</SCRIPT`, `</STYLE`) are ASCII, so the locale lookup only
-// runs for non-ASCII input.
-static inline int32_t upper(int32_t c) {
-    if (c < 128) return (c >= 'a' && c <= 'z') ? c - ('a' - 'A') : c;
-    return towupper(c);
+// ASCII-only case fold for tag names and the raw-text end delimiter. HTML
+// matches the end tag name this way, so `</ſcript` (U+017F) does not end a
+// script body, as `towupper` would allow.
+static inline int32_t ascii_upper(int32_t c) {
+    return (c >= 'a' && c <= 'z') ? c - ('a' - 'A') : c;
 }
 
 // Tag-name and markup-start tests, likewise: the ASCII case is by far the
@@ -198,7 +224,7 @@ static Tag scan_tag_name(Scanner *scanner, TSLexer *lexer) {
     Tag name = take_tag(scanner, 16);
     while (is_tag_name_char(lexer->lookahead)) {
         int32_t c = lexer->lookahead;
-        char byte = c < 0x80 ? (char)upper(c) : (char)(0x80 | (c & 0x7f));
+        char byte = c < 0x80 ? (char)ascii_upper(c) : (char)(0x80 | (c & 0x7f));
         array_push(&name, byte);
         advance(lexer);
     }
@@ -298,7 +324,7 @@ static bool scan_raw_text(Scanner *scanner, TSLexer *lexer) {
     size_t matched = 0;
     bool has_content = false;
     while (!lexer->eof(lexer)) {
-        if (upper(lexer->lookahead) == delimiter[matched]) {
+        if (ascii_upper(lexer->lookahead) == delimiter[matched]) {
             matched++;
             advance(lexer);
             if (matched < delimiter_length) continue;
