@@ -10,9 +10,9 @@
 // The corpora cover the scanner's different paths: element and attribute
 // scanning, text runs with entities, raw text inside <script>, nesting (which
 // decides how much scanner state is serialized per token), control-flow
-// blocks, error recovery, nesting deeper than the scanner's buffer pool, and
-// the test fixtures as they are. Run it twice per revision and compare; differences
-// below ~1% are noise on a busy machine.
+// blocks, error recovery, nesting deep enough to pass the scanner's spare-buffer
+// slack, and the test fixtures as they are. Run it twice per revision and
+// compare; differences below ~1% are noise on a busy machine.
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -51,7 +51,7 @@ const corpora = [
   ],
   [
     'error-recovery',
-    repeat('<div <span>broken</div>\n<p class="ok">after</p>\n<a href=">link</a>\n', 300),
+    repeat('<div <span>broken</div>\n<p class="ok">after</p>\n<a href=>link</a>\n', 300),
   ],
   ['deep-nesting', repeat('<div>'.repeat(120) + 'x' + '</div>'.repeat(120) + '\n', 30)],
   [
