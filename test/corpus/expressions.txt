@@ -241,3 +241,55 @@ left-associative operators
           right: (identifier))
         right: (identifier))
       right: (identifier))))
+
+================================================================================
+entity-encoded logical and comparison operators
+================================================================================
+
+<button (click)="ready &amp;&amp; count &lt; 3 &amp;&amp; count &gt;= 1 &amp;&amp; submit()"></button>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (event_binding
+        (binding_name)
+        (binary_expression
+          (binary_expression
+            (binary_expression
+              (identifier)
+              (binary_expression
+                (identifier)
+                (number)))
+            (binary_expression
+              (identifier)
+              (number)))
+          (call_expression
+            (identifier)
+            (arguments)))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+entity-encoded logical assignment
+================================================================================
+
+<button (click)="seen &amp;&amp;= other &lt;= 2"></button>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (event_binding
+        (binding_name)
+        (augmented_assignment_expression
+          (identifier)
+          (binary_expression
+            (identifier)
+            (number)))))
+    (end_tag
+      (tag_name))))

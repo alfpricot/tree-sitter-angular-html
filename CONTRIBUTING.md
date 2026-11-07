@@ -4,7 +4,7 @@ A tree-sitter grammar for Angular templates, with Node and Rust bindings.
 
 ## Before you start
 
-1. Branch from **`main`**.
+1. Branch from **`dev`**.
 2. Read [ARCHITECTURE.md](ARCHITECTURE.md) for how the grammar, scanner and generated parser fit together.
 
 ## Local setup
@@ -38,7 +38,7 @@ npm test
 
 ## Pull requests
 
-- Open pull requests against **`main`**.
+- Open pull requests against **`dev`**; releases are cut when `dev` is promoted to `main`.
 - Use a Conventional Commit title (`feat:`, `fix:`, `docs:`, `chore:`, `test:`, ...); CI rejects other titles.
 - Regenerate and commit the parser and node-kind snapshot (`node tools/node-kinds.mjs > test/node-kinds.txt`) with any grammar change; CI rejects drift in either.
 - Add a corpus case or extend a fixture for every newly supported construct.

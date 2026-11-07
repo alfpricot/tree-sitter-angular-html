@@ -2,14 +2,14 @@
 
 tree-sitter-angular-html turns an Angular component template into a concrete syntax tree. It covers plain HTML, interpolation, bindings, template references, structural directives, built-in control flow (`@if`, `@for`, `@switch`), deferrable views (`@defer`), `@let`, and the Angular expression language, and it ships highlight and injection queries with Node and Rust bindings.
 
-The design choice that shapes everything else is that the HTML layer is built in rather than extended from `tree-sitter-html`. Angular changes how text is lexed (`{{`, `@` followed by a letter, and `}` are syntax), so a hand-written external scanner owns text, tag names, quoted attribute text and block braces, while the grammar rules around it are written from scratch. The generated parser is committed so consumers never need the tree-sitter CLI.
+The design choice that shapes everything else is that the HTML layer is built in rather than extended from `tree-sitter-html`. Angular changes how text is lexed (`{{`, `@` followed by a letter, `}`, and a `{` that opens an ICU message are syntax), so a hand-written external scanner owns text, tag names, quoted attribute text and block braces, while the grammar rules around it are written from scratch. The generated parser is committed so consumers never need the tree-sitter CLI.
 
 ## What tree-sitter-angular-html is not
 
 - Not an Angular compiler or type checker: it produces a syntax tree and attaches no meaning to selectors, pipes or directives.
 - Not an extension of `tree-sitter-html`: only the scanner's open-element logic and the HTML node names come from it (see [NOTICE](NOTICE)).
 - Not error-tolerant by design: a template it cannot parse yields `ERROR` nodes rather than a best-effort tree.
-- Not complete yet: ICU messages and `ngNonBindable` content are not parsed.
+- Not complete yet: `ngNonBindable` content is not parsed.
 
 ## Major components
 
@@ -19,7 +19,7 @@ The design choice that shapes everything else is that the HTML layer is built in
 
 ### [src/scanner.c](src/scanner.c)
 
-The external scanner, adapted from `tree-sitter-html`. It keeps a stack of open elements to produce matching and implicit end tags and raw text, and pushes a marker at each block `{` so an end tag cannot close an element outside the innermost block.
+The external scanner, adapted from `tree-sitter-html`. It keeps a stack of open elements to produce matching and implicit end tags and raw text, and pushes a marker at each block `{` and each ICU message `{` so an end tag cannot close an element outside the innermost block. It also decides whether a `{` opens an ICU message, by looking for a value, a comma, a message type and a second comma after it.
 
 ### [src/](src)
 
@@ -35,7 +35,7 @@ The Node addon (`binding.cc`, built by `binding.gyp`, with `index.js` and `index
 
 ### [test/](test) and [tools/](tools)
 
-`test/corpus` asserts exact tree shapes, `test/highlight` asserts highlight captures, and `test/fixtures` holds whole templates that must parse with no `ERROR`, `MISSING` or zero-width nodes. `test/node-kinds.txt` snapshots the public node kinds. The `tools/` scripts run the fixture check and produce or check that snapshot.
+`test/corpus` asserts exact tree shapes, `test/highlight` asserts highlight captures, and `test/fixtures` holds whole templates that must parse with no `ERROR`, `MISSING` or zero-width nodes. `test/node-kinds.txt` snapshots the public node kinds. The `tools/` scripts run the fixture check, produce or check that snapshot, check the package contents and release policy, and `tools/bench.mjs` measures parse throughput over several corpora (text, script bodies, nesting, bindings, control-flow blocks, error recovery, and deep nesting) so a scanner change can be compared before and after.
 
 ## External systems and data flow
 
@@ -54,5 +54,5 @@ The `Verify` workflow ([.github/workflows/verify.yml](.github/workflows/verify.y
 | `queries/` | Highlight and injection queries |
 | `bindings/` | Node addon and Rust crate |
 | `test/` | Corpus, highlight and fixture tests, node-kind snapshot |
-| `tools/` | Fixture check and node-kind snapshot scripts |
+| `tools/` | Fixture check, node-kind snapshot, package and release-policy checks, and the parse benchmark |
 | `.github/` | `Verify`, `Gala release`, `Release`, and cache cleanup workflows, Dependabot and code owners |
