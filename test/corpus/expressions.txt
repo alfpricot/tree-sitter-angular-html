@@ -243,25 +243,6 @@ left-associative operators
       right: (identifier))))
 
 ================================================================================
-a string literal spans lines
-================================================================================
-
-<p>{{ 'first
-second' }}</p>
-
----
-
-(document
-  (element
-    (start_tag
-      (tag_name))
-    (interpolation
-      (string
-        (string_fragment)))
-    (end_tag
-      (tag_name))))
-
-================================================================================
 entity-encoded logical and comparison operators
 ================================================================================
 

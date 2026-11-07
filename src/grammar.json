@@ -2671,7 +2671,7 @@
                       "type": "IMMEDIATE_TOKEN",
                       "content": {
                         "type": "PATTERN",
-                        "value": "[^\"\\\\]+"
+                        "value": "[^\"\\\\\\n]+"
                       }
                     },
                     "named": true,
@@ -2708,7 +2708,7 @@
                       "type": "IMMEDIATE_TOKEN",
                       "content": {
                         "type": "PATTERN",
-                        "value": "[^'\\\\]+"
+                        "value": "[^'\\\\\\n]+"
                       }
                     },
                     "named": true,
