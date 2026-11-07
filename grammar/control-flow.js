@@ -44,7 +44,11 @@ export default {
       field('item', $.identifier),
       'of',
       field('collection', $._expression),
-      repeat(seq(';', choice($.for_track, $.for_let))),
+      // Angular requires exactly one `track`; `let` may come before or after.
+      repeat(seq(';', $.for_let)),
+      ';',
+      $.for_track,
+      repeat(seq(';', $.for_let)),
       optional(';'),
       ')',
       field('body', $.block),

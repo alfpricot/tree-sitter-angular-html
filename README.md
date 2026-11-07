@@ -53,7 +53,7 @@ let tree = parser.parse("@if (user) { <p>{{ user.name }}</p> }", None).unwrap();
 - **Control flow**: `@if`/`@else if`/`@else` (with `; as alias`), `@for` with `track`, context variables and `@empty`, `@switch`/`@case`/`@default`.
 - **Deferrable views**: `@defer` with `on`/`when`/`prefetch`/`hydrate` triggers, `@placeholder`, `@loading`, `@error`.
 - **`@let`** declarations.
-- **Expressions**: the Angular expression language with Angular's own precedence, including safe navigation, non-null assertions, `typeof`/`void`/`in`, `??`, `**`, template literals, assignments and compound assignments in event handlers, and pipes with arguments.
+- **Expressions**: the Angular expression language with Angular's own precedence, including safe navigation, non-null assertions, `typeof`/`void`/`in`, `??`, `**`, template literals, assignments and compound assignments in event handlers, pipes with arguments, and the entity-encoded spellings of `&&`, `<`, `>`, `<=`, `>=` and `&&=` (`&amp;&amp;`, `&lt;`, `&gt;`, `&lt;=`, `&gt;=`, `&amp;&amp;=`) that HTML-escaping tools produce. The entity spellings are also accepted in block parameters and `@let`, where Angular does not decode them. String literals end at a line break. `@for` requires exactly one `track` clause, and object literal keys are identifiers or strings, as in Angular.
 
 Not covered yet: ICU messages (`{count, plural, ...}`; a lone `{` is text) and `ngNonBindable` content.
 

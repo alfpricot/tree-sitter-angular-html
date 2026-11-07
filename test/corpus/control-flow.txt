@@ -226,3 +226,34 @@ optional end tag closed at a block end
             expression: (identifier)))))
     (end_tag
       (tag_name))))
+
+================================================================================
+for block with a let clause before track
+================================================================================
+
+@for (item of items; let i = $index; track item.id) {
+  <li>{{ i }}</li>
+}
+
+---
+
+(document
+  (for_block
+    (identifier)
+    (identifier)
+    (for_let
+      (context_variable
+        (identifier)
+        (identifier)))
+    (for_track
+      (member_expression
+        (identifier)
+        (property_identifier)))
+    (block
+      (element
+        (start_tag
+          (tag_name))
+        (interpolation
+          (identifier))
+        (end_tag
+          (tag_name))))))
