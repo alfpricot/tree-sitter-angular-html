@@ -490,6 +490,10 @@
             "named": false
           },
           {
+            "type": "&amp;&amp;=",
+            "named": false
+          },
+          {
             "type": "**=",
             "named": false
           },
@@ -723,6 +727,26 @@
           },
           {
             "type": "&&",
+            "named": false
+          },
+          {
+            "type": "&amp;&amp;",
+            "named": false
+          },
+          {
+            "type": "&gt;",
+            "named": false
+          },
+          {
+            "type": "&gt;=",
+            "named": false
+          },
+          {
+            "type": "&lt;",
+            "named": false
+          },
+          {
+            "type": "&lt;=",
             "named": false
           },
           {
@@ -2243,7 +2267,7 @@
     },
     "children": {
       "multiple": true,
-      "required": false,
+      "required": true,
       "types": [
         {
           "type": "empty_block",
@@ -2947,10 +2971,6 @@
         "multiple": false,
         "required": true,
         "types": [
-          {
-            "type": "number",
-            "named": true
-          },
           {
             "type": "property_identifier",
             "named": true
@@ -4773,6 +4793,30 @@
   },
   {
     "type": "&&=",
+    "named": false
+  },
+  {
+    "type": "&amp;&amp;",
+    "named": false
+  },
+  {
+    "type": "&amp;&amp;=",
+    "named": false
+  },
+  {
+    "type": "&gt;",
+    "named": false
+  },
+  {
+    "type": "&gt;=",
+    "named": false
+  },
+  {
+    "type": "&lt;",
+    "named": false
+  },
+  {
+    "type": "&lt;=",
     "named": false
   },
   {

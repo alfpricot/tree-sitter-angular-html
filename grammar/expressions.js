@@ -4,6 +4,11 @@
 // Precedence follows Angular's own parser (lowest first): pipe, assignment,
 // conditional, `||`, `&&`, `??`, equality, relational, additive,
 // multiplicative, `**`, unary, then postfix and member access.
+//
+// Angular decodes character references in attribute values before parsing
+// them, so `&&`, `<`, `>`, `<=`, `>=` and `&&=` are also accepted in their
+// entity-encoded spellings (`&amp;&amp;`, `&lt;`, `&gt;`, `&lt;=`, `&gt;=`,
+// `&amp;&amp;=`), which HTML-escaping tools produce.
 
 import { comma_list } from './helpers.js';
 
@@ -79,12 +84,12 @@ export default {
     choice(
       seq(
         '"',
-        repeat(choice(alias(token.immediate(/[^"\\\n]+/), $.string_fragment), $.escape_sequence)),
+        repeat(choice(alias(token.immediate(/[^"\\]+/), $.string_fragment), $.escape_sequence)),
         '"',
       ),
       seq(
         "'",
-        repeat(choice(alias(token.immediate(/[^'\\\n]+/), $.string_fragment), $.escape_sequence)),
+        repeat(choice(alias(token.immediate(/[^'\\]+/), $.string_fragment), $.escape_sequence)),
         "'",
       ),
     ),
@@ -120,7 +125,7 @@ export default {
 
   pair: ($) =>
     seq(
-      field('key', choice(alias($.identifier, $.property_identifier), $.string, $.number)),
+      field('key', choice(alias($.identifier, $.property_identifier), $.string)),
       ':',
       field('value', $._expression),
     ),
@@ -178,16 +183,16 @@ export default {
   binary_expression: ($) => {
     const table = [
       ['||', PREC.or],
-      ['&&', PREC.and],
+      [['&&', '&amp;&amp;'], PREC.and],
       ['??', PREC.nullish],
       ['==', PREC.equality],
       ['!=', PREC.equality],
       ['===', PREC.equality],
       ['!==', PREC.equality],
-      ['<', PREC.relational],
-      ['>', PREC.relational],
-      ['<=', PREC.relational],
-      ['>=', PREC.relational],
+      [['<', '&lt;'], PREC.relational],
+      [['>', '&gt;'], PREC.relational],
+      [['<=', '&lt;='], PREC.relational],
+      [['>=', '&gt;='], PREC.relational],
       ['in', PREC.relational],
       ['+', PREC.additive],
       ['-', PREC.additive],
@@ -201,7 +206,7 @@ export default {
           precedence,
           seq(
             field('left', $._non_pipe_expression),
-            field('operator', operator),
+            field('operator', Array.isArray(operator) ? choice(...operator) : operator),
             field('right', $._non_pipe_expression),
           ),
         ),
@@ -274,7 +279,10 @@ export default {
       PREC.assign,
       seq(
         field('left', $._assignable),
-        field('operator', choice('+=', '-=', '*=', '/=', '%=', '**=', '&&=', '||=', '??=')),
+        field(
+          'operator',
+          choice('+=', '-=', '*=', '/=', '%=', '**=', '&&=', '&amp;&amp;=', '||=', '??='),
+        ),
         field('right', $._non_pipe_expression),
       ),
     ),
