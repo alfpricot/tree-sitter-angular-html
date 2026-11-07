@@ -54,8 +54,9 @@ let tree = parser.parse("@if (user) { <p>{{ user.name }}</p> }", None).unwrap();
 - **Deferrable views**: `@defer` with `on`/`when`/`prefetch`/`hydrate` triggers, `@placeholder`, `@loading`, `@error`.
 - **`@let`** declarations.
 - **Expressions**: the Angular expression language with Angular's own precedence, including safe navigation, non-null assertions, `typeof`/`void`/`in`, `??`, `**`, template literals, assignments and compound assignments in event handlers, pipes with arguments, and the entity-encoded spellings of `&&`, `<`, `>`, `<=`, `>=` and `&&=` (`&amp;&amp;`, `&lt;`, `&gt;`, `&lt;=`, `&gt;=`, `&amp;&amp;=`) that HTML-escaping tools produce. The entity spellings are also accepted in block parameters and `@let`, where Angular does not decode them. String literals end at a line break. `@for` requires exactly one `track` clause, and object literal keys are identifiers or strings, as in Angular.
+- **ICU messages**: `{count, plural, =0 {none} other {many}}`, `select` and `selectordinal`, as `icu_expression` nodes with `icu_type`, `icu_case` and `icu_selector` children. Case bodies are ordinary content (text, elements, interpolations, nested messages). A `{` that does not start a message stays text, but it ends the text before it, so `a { b` is three text nodes.
 
-Not covered yet: ICU messages (`{count, plural, ...}`; a lone `{` is text) and `ngNonBindable` content.
+Not covered yet: `ngNonBindable` content.
 
 Like the Angular compiler, the grammar treats an unescaped `@` followed by a letter, or a `}` outside a block, as an error; write `&#64;` and `&#125;` for the literal characters.
 

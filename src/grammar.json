@@ -31,6 +31,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "icu_expression"
+        },
+        {
+          "type": "SYMBOL",
           "name": "element"
         },
         {
@@ -539,6 +543,105 @@
           "value": "}}"
         }
       ]
+    },
+    "icu_expression": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_icu_start"
+          },
+          "named": false,
+          "value": "{"
+        },
+        {
+          "type": "FIELD",
+          "name": "value",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_expression"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": ","
+        },
+        {
+          "type": "FIELD",
+          "name": "type",
+          "content": {
+            "type": "SYMBOL",
+            "name": "icu_type"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": ","
+        },
+        {
+          "type": "REPEAT1",
+          "content": {
+            "type": "SYMBOL",
+            "name": "icu_case"
+          }
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_block_end"
+          },
+          "named": false,
+          "value": "}"
+        }
+      ]
+    },
+    "icu_type": {
+      "type": "TOKEN",
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "plural"
+          },
+          {
+            "type": "STRING",
+            "value": "select"
+          },
+          {
+            "type": "STRING",
+            "value": "selectordinal"
+          }
+        ]
+      }
+    },
+    "icu_case": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "FIELD",
+          "name": "selector",
+          "content": {
+            "type": "SYMBOL",
+            "name": "icu_selector"
+          }
+        },
+        {
+          "type": "FIELD",
+          "name": "body",
+          "content": {
+            "type": "SYMBOL",
+            "name": "block"
+          }
+        }
+      ]
+    },
+    "icu_selector": {
+      "type": "PATTERN",
+      "value": "=[0-9]+|[A-Za-z_][A-Za-z0-9_]*"
     },
     "binding_name": {
       "type": "IMMEDIATE_TOKEN",
@@ -4345,6 +4448,10 @@
     {
       "type": "SYMBOL",
       "name": "_block_end"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_icu_start"
     },
     {
       "type": "SYMBOL",

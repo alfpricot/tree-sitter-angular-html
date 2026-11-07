@@ -9,7 +9,7 @@ The design choice that shapes everything else is that the HTML layer is built in
 - Not an Angular compiler or type checker: it produces a syntax tree and attaches no meaning to selectors, pipes or directives.
 - Not an extension of `tree-sitter-html`: only the scanner's open-element logic and the HTML node names come from it (see [NOTICE](NOTICE)).
 - Not error-tolerant by design: a template it cannot parse yields `ERROR` nodes rather than a best-effort tree.
-- Not complete yet: ICU messages and `ngNonBindable` content are not parsed.
+- Not complete yet: `ngNonBindable` content is not parsed.
 
 ## Major components
 

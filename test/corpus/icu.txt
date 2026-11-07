@@ -1,0 +1,182 @@
+================================================================================
+plural message
+================================================================================
+
+<span i18n>{count, plural, =0 {none} =1 {one item} other {many items}}</span>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name)
+      (attribute
+        (attribute_name)))
+    (icu_expression
+      (identifier)
+      (icu_type)
+      (icu_case
+        (icu_selector)
+        (block
+          (text)))
+      (icu_case
+        (icu_selector)
+        (block
+          (text)))
+      (icu_case
+        (icu_selector)
+        (block
+          (text))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+select message nested in a plural case with an interpolation
+================================================================================
+
+<p>{n, plural, one {{{ name }} has one} other {{g, select, f {she} other {they}}}}</p>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (icu_expression
+      (identifier)
+      (icu_type)
+      (icu_case
+        (icu_selector)
+        (block
+          (interpolation
+            (identifier))
+          (text)))
+      (icu_case
+        (icu_selector)
+        (block
+          (icu_expression
+            (identifier)
+            (icu_type)
+            (icu_case
+              (icu_selector)
+              (block
+                (text)))
+            (icu_case
+              (icu_selector)
+              (block
+                (text)))))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+message cases hold elements and a piped value
+================================================================================
+
+<div>{count | async, plural, one {<b>one</b> item} other {many <i>items</i>}}</div>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (icu_expression
+      (pipe_expression
+        (identifier)
+        (pipe_name))
+      (icu_type)
+      (icu_case
+        (icu_selector)
+        (block
+          (element
+            (start_tag
+              (tag_name))
+            (text)
+            (end_tag
+              (tag_name)))
+          (text)))
+      (icu_case
+        (icu_selector)
+        (block
+          (text)
+          (element
+            (start_tag
+              (tag_name))
+            (text)
+            (end_tag
+              (tag_name))))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+selectordinal message after text
+================================================================================
+
+<p>You finished {place, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} today</p>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (text)
+    (icu_expression
+      (identifier)
+      (icu_type)
+      (icu_case
+        (icu_selector)
+        (block
+          (text)))
+      (icu_case
+        (icu_selector)
+        (block
+          (text)))
+      (icu_case
+        (icu_selector)
+        (block
+          (text)))
+      (icu_case
+        (icu_selector)
+        (block
+          (text))))
+    (text)
+    (end_tag
+      (tag_name))))
+
+================================================================================
+a brace that does not open a message stays text
+================================================================================
+
+<p>a { b</p>
+<p>{ k: 1 </p>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (text)
+    (text)
+    (text)
+    (end_tag
+      (tag_name)))
+  (element
+    (start_tag
+      (tag_name))
+    (text)
+    (text)
+    (end_tag
+      (tag_name))))
+
+================================================================================
+a message type other than plural, select or selectordinal is not a message
+:error
+================================================================================
+
+<p>{count, range, one {x}}</p>
+
+---
+
+

@@ -1,0 +1,20 @@
+<h1 i18n="@@inboxTitle">Inbox</h1>
+
+<p i18n="Unread count@@unread">
+  Updated {minutes, plural, =0 {just now} =1 {one minute ago} other {{{ minutes }} minutes ago}}
+</p>
+
+<span i18n>
+  The author is {gender, select, male {male} female {female} other {other}}
+</span>
+
+<ul>
+  @for (folder of folders; track folder.id) {
+    <li i18n>
+      {folder.count | async, plural,
+        =0 {{{ folder.name }} is empty}
+        one {{{ folder.name }} has <b>one</b> message}
+        other {{{ folder.name }} has {{ folder.count }} messages}}
+    </li>
+  }
+</ul>
