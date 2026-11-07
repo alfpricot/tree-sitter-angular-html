@@ -324,3 +324,135 @@ an at sign before a non-ASCII letter is text
     (text)
     (end_tag
       (tag_name))))
+
+================================================================================
+a paragraph closed by dialog, hgroup and search
+================================================================================
+
+<p>a<dialog>b</dialog>
+<p>c<hgroup>d</hgroup>
+<p>e<search>f</search>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (text))
+  (element
+    (start_tag
+      (tag_name))
+    (text)
+    (end_tag
+      (tag_name)))
+  (element
+    (start_tag
+      (tag_name))
+    (text))
+  (element
+    (start_tag
+      (tag_name))
+    (text)
+    (end_tag
+      (tag_name)))
+  (element
+    (start_tag
+      (tag_name))
+    (text))
+  (element
+    (start_tag
+      (tag_name))
+    (text)
+    (end_tag
+      (tag_name))))
+
+================================================================================
+table sections close one another
+================================================================================
+
+<table><thead><tr><th>a<tbody><tr><td>b<tfoot><tr><td>c</table>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (element
+      (start_tag
+        (tag_name))
+      (element
+        (start_tag
+          (tag_name))
+        (element
+          (start_tag
+            (tag_name))
+          (text))))
+    (element
+      (start_tag
+        (tag_name))
+      (element
+        (start_tag
+          (tag_name))
+        (element
+          (start_tag
+            (tag_name))
+          (text))))
+    (element
+      (start_tag
+        (tag_name))
+      (element
+        (start_tag
+          (tag_name))
+        (element
+          (start_tag
+            (tag_name))
+          (text))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+a caption closed by a row group
+================================================================================
+
+<table><caption>c<tbody><tr><td>a</table>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (element
+      (start_tag
+        (tag_name))
+      (text))
+    (element
+      (start_tag
+        (tag_name))
+      (element
+        (start_tag
+          (tag_name))
+        (element
+          (start_tag
+            (tag_name))
+          (text))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+a script body ends only at an ASCII end tag name
+================================================================================
+
+<script>a</ſcript>b</scrıpt>c</script>
+
+---
+
+(document
+  (script_element
+    (start_tag
+      (tag_name))
+    (raw_text)
+    (end_tag
+      (tag_name))))
