@@ -29,6 +29,7 @@ export default grammar({
     $._single_quoted_text,
     $._block_start,
     $._block_end,
+    $._icu_start,
     // Never used by a rule: it is only valid while the parser is
     // recovering from an error, which is how the scanner detects that.
     $._error_sentinel,

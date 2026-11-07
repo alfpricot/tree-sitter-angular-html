@@ -37,6 +37,10 @@ false
 for_block
 for_let
 for_track
+icu_case
+icu_expression
+icu_selector
+icu_type
 identifier
 if_block
 interpolation

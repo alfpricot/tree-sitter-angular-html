@@ -932,6 +932,10 @@
           "named": true
         },
         {
+          "type": "icu_expression",
+          "named": true
+        },
+        {
           "type": "if_block",
           "named": true
         },
@@ -1729,6 +1733,10 @@
           "named": true
         },
         {
+          "type": "icu_expression",
+          "named": true
+        },
+        {
           "type": "if_block",
           "named": true
         },
@@ -1793,6 +1801,10 @@
         },
         {
           "type": "for_block",
+          "named": true
+        },
+        {
+          "type": "icu_expression",
           "named": true
         },
         {
@@ -2397,6 +2409,152 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "icu_case",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      },
+      "selector": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "icu_selector",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "icu_expression",
+    "named": true,
+    "fields": {
+      "type": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "icu_type",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "array",
+            "named": true
+          },
+          {
+            "type": "assignment_expression",
+            "named": true
+          },
+          {
+            "type": "augmented_assignment_expression",
+            "named": true
+          },
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "call_expression",
+            "named": true
+          },
+          {
+            "type": "conditional_expression",
+            "named": true
+          },
+          {
+            "type": "false",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "non_null_expression",
+            "named": true
+          },
+          {
+            "type": "null",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "object",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "pipe_expression",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "subscript_expression",
+            "named": true
+          },
+          {
+            "type": "template_string",
+            "named": true
+          },
+          {
+            "type": "this",
+            "named": true
+          },
+          {
+            "type": "true",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          },
+          {
+            "type": "undefined",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "icu_case",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -5083,6 +5241,14 @@
   {
     "type": "hydrate",
     "named": false
+  },
+  {
+    "type": "icu_selector",
+    "named": true
+  },
+  {
+    "type": "icu_type",
+    "named": true
   },
   {
     "type": "identifier",

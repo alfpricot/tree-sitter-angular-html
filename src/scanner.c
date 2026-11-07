@@ -5,10 +5,13 @@
 // text, and extends it for Angular templates:
 //
 // - `text` stops before markup `<`, entities, `{{`, `@` followed by a
-//   letter (a block keyword) and `}` (a block end).
+//   letter (a block keyword) and `}` (a block end). Where an ICU message can
+//   start, it also stops before every `{`, so the next token can tell a
+//   message from a lone brace (`scan_icu_start`).
 // - Quoted attribute text stops before `{{`, so a plain attribute value can
 //   hold interpolations.
-// - Block braces push and pop a marker entry on the element stack. An end
+// - Block braces and the braces of an ICU message push and pop a marker entry
+//   on the element stack. An end
 //   tag never closes an element outside the innermost block, and elements
 //   whose end tag HTML lets you omit are closed implicitly at the block's
 //   `}`.
@@ -36,6 +39,7 @@ enum TokenType {
     SINGLE_QUOTED_TEXT,
     BLOCK_START,
     BLOCK_END,
+    ICU_START,
     ERROR_SENTINEL,
 };
 
@@ -509,7 +513,7 @@ static bool scan_entity_tail(TSLexer *lexer) {
 
 // Element and block content. Leading and trailing whitespace is left to the
 // grammar's extras, as in tree-sitter-html.
-static bool scan_text(TSLexer *lexer, bool has_content) {
+static bool scan_text(TSLexer *lexer, bool has_content, bool icu) {
     while (!lexer->eof(lexer)) {
         int32_t c = lexer->lookahead;
         if (c == '}') break;
@@ -517,6 +521,9 @@ static bool scan_text(TSLexer *lexer, bool has_content) {
             advance(lexer);
             if (starts_markup(lexer->lookahead)) break;
         } else if (c == '{') {
+            // With ICU messages possible here, text ends before every `{` so
+            // the next token can decide whether it opens a message.
+            if (icu) break;
             advance(lexer);
             if (lexer->lookahead == '{') break;
         } else if (c == '@') {
@@ -536,6 +543,62 @@ static bool scan_text(TSLexer *lexer, bool has_content) {
         lexer->mark_end(lexer);
     }
     if (!has_content) return false;
+    lexer->result_symbol = TEXT;
+    return true;
+}
+
+// Whether a name read from the lexer is an ICU message type.
+static bool is_icu_type(const char *name, uint32_t length) {
+    return (length == 6 && memcmp(name, "plural", 6) == 0) ||
+           (length == 6 && memcmp(name, "select", 6) == 0) ||
+           (length == 13 && memcmp(name, "selectordinal", 13) == 0);
+}
+
+// Called with the lexer at a `{`. The brace opens an ICU message when it is
+// followed by a value, a comma, a message type (`plural`, `select` or
+// `selectordinal`) and a second comma, as in `{count, plural, =0 {none}}`.
+// The token is only the brace: the value and type are parsed by the grammar.
+// Any other `{` stays text, and as a one-character text token so the lookahead
+// spent here is not lost.
+static bool scan_icu_start(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
+    advance(lexer);
+    // `{{` starts an interpolation, which the grammar lexes itself.
+    if (lexer->lookahead == '{') return false;
+    lexer->mark_end(lexer);
+
+    bool has_value = false;
+    while (!lexer->eof(lexer)) {
+        int32_t c = lexer->lookahead;
+        if (c == ',' || c == '{' || c == '}' || c == '@') break;
+        advance(lexer);
+        // A `<` that starts markup ends the probe; a comparison does not.
+        if (c == '<' && starts_markup(lexer->lookahead)) break;
+        if (!is_space(c)) has_value = true;
+    }
+
+    bool is_message = false;
+    if (has_value && lexer->lookahead == ',') {
+        advance(lexer);
+        while (is_space(lexer->lookahead)) advance(lexer);
+        char name[16];
+        uint32_t length = 0;
+        while (is_ascii_alpha(lexer->lookahead) && length < sizeof(name)) {
+            name[length++] = (char)lexer->lookahead;
+            advance(lexer);
+        }
+        if (length < sizeof(name) && is_icu_type(name, length)) {
+            while (is_space(lexer->lookahead)) advance(lexer);
+            is_message = lexer->lookahead == ',';
+        }
+    }
+
+    if (is_message) {
+        Tag marker = array_new();
+        array_push(&scanner->tags, marker);
+        lexer->result_symbol = ICU_START;
+        return true;
+    }
+    if (!valid_symbols[TEXT]) return false;
     lexer->result_symbol = TEXT;
     return true;
 }
@@ -581,7 +644,7 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             // A `<` that starts no markup is text.
             if (valid_symbols[TEXT]) {
                 lexer->mark_end(lexer);
-                return scan_text(lexer, true);
+                return scan_text(lexer, true, valid_symbols[ICU_START] && !in_error_recovery);
             }
             return false;
 
@@ -604,6 +667,9 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             return true;
 
         case '{':
+            if (valid_symbols[ICU_START] && !in_error_recovery) {
+                return scan_icu_start(scanner, lexer, valid_symbols);
+            }
             if (valid_symbols[BLOCK_START] && !in_error_recovery) {
                 advance(lexer);
                 Tag marker = array_new();
@@ -630,7 +696,9 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             }
     }
 
-    if (valid_symbols[TEXT]) return scan_text(lexer, false);
+    if (valid_symbols[TEXT]) {
+        return scan_text(lexer, false, valid_symbols[ICU_START] && !in_error_recovery);
+    }
     return false;
 }
 

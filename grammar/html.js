@@ -15,6 +15,7 @@ export default {
       $.entity,
       $.text,
       $.interpolation,
+      $.icu_expression,
       $.element,
       $.script_element,
       $.style_element,
@@ -90,4 +91,26 @@ export default {
   entity: (_) => /&(#([xX]0*[0-9a-fA-F]{1,6}|0*[0-9]{1,7})|[A-Za-z][A-Za-z0-9]{1,31});/,
 
   interpolation: ($) => seq('{{', field('expression', $._expression), '}}'),
+
+  // An ICU message: `{count, plural, =0 {none} one {one item} other {many}}`.
+  // The opening brace is an external token so the scanner can tell a message
+  // from a lone `{` in text; the case bodies are ordinary blocks.
+  icu_expression: ($) =>
+    seq(
+      alias($._icu_start, '{'),
+      field('value', $._expression),
+      ',',
+      field('type', $.icu_type),
+      ',',
+      repeat1($.icu_case),
+      alias($._block_end, '}'),
+    ),
+
+  icu_type: (_) => token(choice('plural', 'select', 'selectordinal')),
+
+  icu_case: ($) => seq(field('selector', $.icu_selector), field('body', $.block)),
+
+  // `=0`, or a key such as `one`, `other`, `1` or `in-progress`: Angular reads
+  // a case key as any text up to its brace.
+  icu_selector: (_) => /=[0-9]+|[^\s{}=,][^\s{}]*/,
 };

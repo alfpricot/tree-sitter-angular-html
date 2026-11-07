@@ -2,14 +2,14 @@
 
 tree-sitter-angular-html turns an Angular component template into a concrete syntax tree. It covers plain HTML, interpolation, bindings, template references, structural directives, built-in control flow (`@if`, `@for`, `@switch`), deferrable views (`@defer`), `@let`, and the Angular expression language, and it ships highlight and injection queries with Node and Rust bindings.
 
-The design choice that shapes everything else is that the HTML layer is built in rather than extended from `tree-sitter-html`. Angular changes how text is lexed (`{{`, `@` followed by a letter, and `}` are syntax), so a hand-written external scanner owns text, tag names, quoted attribute text and block braces, while the grammar rules around it are written from scratch. The generated parser is committed so consumers never need the tree-sitter CLI.
+The design choice that shapes everything else is that the HTML layer is built in rather than extended from `tree-sitter-html`. Angular changes how text is lexed (`{{`, `@` followed by a letter, `}`, and a `{` that opens an ICU message are syntax), so a hand-written external scanner owns text, tag names, quoted attribute text and block braces, while the grammar rules around it are written from scratch. The generated parser is committed so consumers never need the tree-sitter CLI.
 
 ## What tree-sitter-angular-html is not
 
 - Not an Angular compiler or type checker: it produces a syntax tree and attaches no meaning to selectors, pipes or directives.
 - Not an extension of `tree-sitter-html`: only the scanner's open-element logic and the HTML node names come from it (see [NOTICE](NOTICE)).
 - Not error-tolerant by design: a template it cannot parse yields `ERROR` nodes rather than a best-effort tree.
-- Not complete yet: ICU messages and `ngNonBindable` content are not parsed.
+- Not complete yet: `ngNonBindable` content is not parsed.
 
 ## Major components
 
@@ -19,7 +19,7 @@ The design choice that shapes everything else is that the HTML layer is built in
 
 ### [src/scanner.c](src/scanner.c)
 
-The external scanner, adapted from `tree-sitter-html`. It keeps a stack of open elements to produce matching and implicit end tags and raw text, and pushes a marker at each block `{` so an end tag cannot close an element outside the innermost block.
+The external scanner, adapted from `tree-sitter-html`. It keeps a stack of open elements to produce matching and implicit end tags and raw text, and pushes a marker at each block `{` and each ICU message `{` so an end tag cannot close an element outside the innermost block. It also decides whether a `{` opens an ICU message, by looking for a value, a comma, a message type and a second comma after it.
 
 ### [src/](src)
 
