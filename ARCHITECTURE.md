@@ -35,7 +35,7 @@ The Node addon (`binding.cc`, built by `binding.gyp`, with `index.js` and `index
 
 ### [test/](test) and [tools/](tools)
 
-`test/corpus` asserts exact tree shapes, `test/highlight` asserts highlight captures, and `test/fixtures` holds whole templates that must parse with no `ERROR`, `MISSING` or zero-width nodes. `test/node-kinds.txt` snapshots the public node kinds. The `tools/` scripts run the fixture check and produce or check that snapshot.
+`test/corpus` asserts exact tree shapes, `test/highlight` asserts highlight captures, and `test/fixtures` holds whole templates that must parse with no `ERROR`, `MISSING` or zero-width nodes. `test/node-kinds.txt` snapshots the public node kinds. The `tools/` scripts run the fixture check, produce or check that snapshot, check the package contents and release policy, and `tools/bench.mjs` measures parse throughput over several corpora (text, script bodies, nesting, bindings, control-flow blocks, error recovery, and deep nesting) so a scanner change can be compared before and after.
 
 ## External systems and data flow
 
@@ -54,5 +54,5 @@ The `Verify` workflow ([.github/workflows/verify.yml](.github/workflows/verify.y
 | `queries/` | Highlight and injection queries |
 | `bindings/` | Node addon and Rust crate |
 | `test/` | Corpus, highlight and fixture tests, node-kind snapshot |
-| `tools/` | Fixture check and node-kind snapshot scripts |
+| `tools/` | Fixture check, node-kind snapshot, package and release-policy checks, and the parse benchmark |
 | `.github/` | `Verify`, `Gala release`, `Release`, and cache cleanup workflows, Dependabot and code owners |
