@@ -24,9 +24,9 @@
 #                      node-gyp-build prefers a matching prebuild over a
 #                      source build. A WASM build is attached to the GitHub
 #                      Release for web-tree-sitter consumers, along with
-#                      test/node-kinds.txt and versions.json as the node-kind
-#                      stability surface (only the files the checkout has —
-#                      an older tag re-dispatched by hand can predate them).
+#                      test/node-kinds.txt as the node-kind stability
+#                      surface (only if the checkout has it — an older tag
+#                      re-dispatched by hand can predate it).
 #
 #                      The workflow_dispatch trigger exists because
 #                      gala-release.yml's release commit carries a skip-ci
@@ -59,7 +59,6 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  TREE_SITTER_CLI_VERSION: '0.27.1'
   PREBUILDIFY_VERSION: '6.0.1'
 
 permissions:
@@ -171,8 +170,14 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.x'
+      - name: Install the tree-sitter CLI
+        # The CLI version comes from package-lock.json, the same one that
+        # generates and verifies parser.c, so Dependabot bumps it in one place.
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild tree-sitter-cli
       - name: Build the WASM grammar
-        run: npx --yes --package=tree-sitter-cli@${{ env.TREE_SITTER_CLI_VERSION }} -- tree-sitter build --wasm
+        run: npx --no-install tree-sitter build --wasm
       - name: Locate the WASM build
         id: wasm
         # The CLI names its output after the grammar's `name` in
@@ -390,13 +395,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # A manual re-dispatch can target a tag cut before these files
-          # existed; upload only what the checkout has, so a recovery run
-          # against an old tag does not fail the whole job.
-          assets=()
-          for f in test/node-kinds.txt versions.json; do
-            [ -f "$f" ] && assets+=("$f")
-          done
-          if [ "${#assets[@]}" -gt 0 ]; then
-            gh release upload "$TAG" "${assets[@]}" --clobber
+          # A manual re-dispatch can target a tag cut before this file
+          # existed; upload it only when the checkout has it, so a recovery
+          # run against an old tag does not fail the whole job.
+          if [ -f test/node-kinds.txt ]; then
+            gh release upload "$TAG" test/node-kinds.txt --clobber
           fi

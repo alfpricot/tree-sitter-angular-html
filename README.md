@@ -94,7 +94,7 @@ The Node binding exposes them as `HIGHLIGHTS_QUERY`/`INJECTIONS_QUERY`; the Rust
 
 ## How to contribute
 
-Branch from `main`, change the grammar under `grammar/` or in `grammar.js`, regenerate the parser, and run the checks. CI regenerates the parser and rejects drift in the generated files and the node-kind snapshot, and requires a Conventional Commit pull request title. Build steps, the full validation list, and pull request rules are in [CONTRIBUTING.md](CONTRIBUTING.md); the design is in [ARCHITECTURE.md](ARCHITECTURE.md).
+Branch from `dev`, change the grammar under `grammar/` or in `grammar.js`, regenerate the parser, and run the checks. CI regenerates the parser and rejects drift in the generated files and the node-kind snapshot, and requires a Conventional Commit pull request title. Build steps, the full validation list, and pull request rules are in [CONTRIBUTING.md](CONTRIBUTING.md); the design is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## License
 
