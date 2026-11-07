@@ -110,5 +110,7 @@ export default {
 
   icu_case: ($) => seq(field('selector', $.icu_selector), field('body', $.block)),
 
-  icu_selector: (_) => /=[0-9]+|[A-Za-z_][A-Za-z0-9_]*/,
+  // `=0`, or a key such as `one`, `other`, `1` or `in-progress`: Angular reads
+  // a case key as any text up to its brace.
+  icu_selector: (_) => /=[0-9]+|[^\s{}=,][^\s{}]*/,
 };

@@ -641,7 +641,7 @@
     },
     "icu_selector": {
       "type": "PATTERN",
-      "value": "=[0-9]+|[A-Za-z_][A-Za-z0-9_]*"
+      "value": "=[0-9]+|[^\\s{}=,][^\\s{}]*"
     },
     "binding_name": {
       "type": "IMMEDIATE_TOKEN",

@@ -166,6 +166,12 @@
     "}"
   ] @punctuation.bracket)
 
+(icu_expression
+  [
+    "{"
+    "}"
+  ] @punctuation.bracket)
+
 (switch_body
   [
     "{"

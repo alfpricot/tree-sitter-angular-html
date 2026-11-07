@@ -5,10 +5,13 @@
 // text, and extends it for Angular templates:
 //
 // - `text` stops before markup `<`, entities, `{{`, `@` followed by a
-//   letter (a block keyword) and `}` (a block end).
+//   letter (a block keyword) and `}` (a block end). Where an ICU message can
+//   start, it also stops before every `{`, so the next token can tell a
+//   message from a lone brace (`scan_icu_start`).
 // - Quoted attribute text stops before `{{`, so a plain attribute value can
 //   hold interpolations.
-// - Block braces push and pop a marker entry on the element stack. An end
+// - Block braces and the braces of an ICU message push and pop a marker entry
+//   on the element stack. An end
 //   tag never closes an element outside the innermost block, and elements
 //   whose end tag HTML lets you omit are closed implicitly at the block's
 //   `}`.
@@ -566,9 +569,11 @@ static bool scan_icu_start(Scanner *scanner, TSLexer *lexer, const bool *valid_s
     bool has_value = false;
     while (!lexer->eof(lexer)) {
         int32_t c = lexer->lookahead;
-        if (c == ',' || c == '{' || c == '}' || c == '<' || c == '>' || c == '@' || c == '&') break;
-        if (!is_space(c)) has_value = true;
+        if (c == ',' || c == '{' || c == '}' || c == '@') break;
         advance(lexer);
+        // A `<` that starts markup ends the probe; a comparison does not.
+        if (c == '<' && starts_markup(lexer->lookahead)) break;
+        if (!is_space(c)) has_value = true;
     }
 
     bool is_message = false;
@@ -639,7 +644,7 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             // A `<` that starts no markup is text.
             if (valid_symbols[TEXT]) {
                 lexer->mark_end(lexer);
-                return scan_text(lexer, true, valid_symbols[ICU_START]);
+                return scan_text(lexer, true, valid_symbols[ICU_START] && !in_error_recovery);
             }
             return false;
 
@@ -691,7 +696,9 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             }
     }
 
-    if (valid_symbols[TEXT]) return scan_text(lexer, false, valid_symbols[ICU_START]);
+    if (valid_symbols[TEXT]) {
+        return scan_text(lexer, false, valid_symbols[ICU_START] && !in_error_recovery);
+    }
     return false;
 }
 

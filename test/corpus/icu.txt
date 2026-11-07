@@ -145,6 +145,85 @@ selectordinal message after text
       (tag_name))))
 
 ================================================================================
+select message with numeric and hyphenated keys
+================================================================================
+
+<p>{role, select, 1 {Admin} in-progress {Busy} other {Guest}}</p>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (icu_expression
+      (identifier)
+      (icu_type)
+      (icu_case
+        (icu_selector)
+        (block
+          (text)))
+      (icu_case
+        (icu_selector)
+        (block
+          (text)))
+      (icu_case
+        (icu_selector)
+        (block
+          (text))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+message value with a comparison and a logical operator
+================================================================================
+
+<p>{items.length > 1, select, true {many} other {few}}</p>
+<p>{ready && ok, select, true {go} other {wait}}</p>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (icu_expression
+      (binary_expression
+        (member_expression
+          (identifier)
+          (property_identifier))
+        (number))
+      (icu_type)
+      (icu_case
+        (icu_selector)
+        (block
+          (text)))
+      (icu_case
+        (icu_selector)
+        (block
+          (text))))
+    (end_tag
+      (tag_name)))
+  (element
+    (start_tag
+      (tag_name))
+    (icu_expression
+      (binary_expression
+        (identifier)
+        (identifier))
+      (icu_type)
+      (icu_case
+        (icu_selector)
+        (block
+          (text)))
+      (icu_case
+        (icu_selector)
+        (block
+          (text))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
 a brace that does not open a message stays text
 ================================================================================
 
