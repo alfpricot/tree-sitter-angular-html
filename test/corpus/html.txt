@@ -456,3 +456,28 @@ a script body ends only at an ASCII end tag name
     (raw_text)
     (end_tag
       (tag_name))))
+
+================================================================================
+a column closes the open cell and row
+================================================================================
+
+<table><tr><td>a<col></table>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (element
+      (start_tag
+        (tag_name))
+      (element
+        (start_tag
+          (tag_name))
+        (text)))
+    (element
+      (start_tag
+        (tag_name)))
+    (end_tag
+      (tag_name))))

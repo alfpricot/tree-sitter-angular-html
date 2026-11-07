@@ -77,7 +77,7 @@ static const char *const NOT_ALLOWED_IN_PARAGRAPHS[] = {
 // Elements that start a new part of a table, so an open caption, row group,
 // row, or cell cannot contain them.
 static const char *const TABLE_PARTS[] = {
-    "CAPTION", "COLGROUP", "THEAD", "TBODY", "TFOOT", NULL,
+    "CAPTION", "COL", "COLGROUP", "THEAD", "TBODY", "TFOOT", NULL,
 };
 
 static inline void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
@@ -150,8 +150,11 @@ static Tag take_tag(Scanner *scanner, uint32_t length) {
     return tag;
 }
 
-// Upper bound on pooled buffers, so one deeply nested document does not leave
-// a long-lived parser holding peak-depth capacity until it is destroyed.
+// Slack kept in the spare list beyond one buffer per open element. The cap
+// follows the live stack depth, so deserialize (which releases every live
+// buffer and takes them all back) never frees and re-allocates, while a
+// parser that finishes a deeply nested document sheds the surplus as the
+// stack shrinks.
 #define MAX_SPARE_TAGS 64
 
 // Returns a buffer to the spare list. Popping an element and discarding a
@@ -159,7 +162,7 @@ static Tag take_tag(Scanner *scanner, uint32_t length) {
 // next state re-uses the capacity instead of asking the allocator again.
 static void release_tag(Scanner *scanner, Tag tag) {
     if (!tag.contents) return;
-    if (scanner->spare.size >= MAX_SPARE_TAGS) {
+    if (scanner->spare.size >= MAX_SPARE_TAGS + scanner->tags.size) {
         array_delete(&tag);
         return;
     }
@@ -195,18 +198,11 @@ static inline bool is_space(int32_t c) {
     return c == ' ' || (c >= '\t' && c <= '\r') || (c >= 128 && iswspace(c));
 }
 
-// ASCII-only case fold. HTML matches the raw-text end tag name this way, so
-// `</ſcript` (U+017F) does not end a script body, as `towupper` would allow.
+// ASCII-only case fold for tag names and the raw-text end delimiter. HTML
+// matches the end tag name this way, so `</ſcript` (U+017F) does not end a
+// script body, as `towupper` would allow.
 static inline int32_t ascii_upper(int32_t c) {
     return (c >= 'a' && c <= 'z') ? c - ('a' - 'A') : c;
-}
-
-// `towupper` with the ASCII case inlined: tag names and the raw-text
-// delimiters (`</SCRIPT`, `</STYLE`) are ASCII, so the locale lookup only
-// runs for non-ASCII input.
-static inline int32_t upper(int32_t c) {
-    if (c < 128) return (c >= 'a' && c <= 'z') ? c - ('a' - 'A') : c;
-    return towupper(c);
 }
 
 // Tag-name and markup-start tests, likewise: the ASCII case is by far the
@@ -228,7 +224,7 @@ static Tag scan_tag_name(Scanner *scanner, TSLexer *lexer) {
     Tag name = take_tag(scanner, 16);
     while (is_tag_name_char(lexer->lookahead)) {
         int32_t c = lexer->lookahead;
-        char byte = c < 0x80 ? (char)upper(c) : (char)(0x80 | (c & 0x7f));
+        char byte = c < 0x80 ? (char)ascii_upper(c) : (char)(0x80 | (c & 0x7f));
         array_push(&name, byte);
         advance(lexer);
     }
