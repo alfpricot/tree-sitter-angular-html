@@ -80,3 +80,76 @@ object literal in an interpolation
           key: (property_identifier)
           value: (number)))
       property: (property_identifier))))
+
+================================================================================
+string wrapped across lines in an interpolation
+================================================================================
+
+<p>{{ a ? 'x' : 'No
+  y' }}</p>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (interpolation
+      expression: (conditional_expression
+        condition: (identifier)
+        consequence: (string
+          (string_fragment))
+        alternative: (string
+          (string_fragment)
+          (string_fragment))))
+    (end_tag
+      (tag_name))))
+
+================================================================================
+string wrapped across several lines before a pipe
+================================================================================
+
+{{ "one
+ two
+ three" | translate }}
+
+---
+
+(document
+  (interpolation
+    expression: (pipe_expression
+      value: (string
+        (string_fragment)
+        (string_fragment)
+        (string_fragment))
+      name: (pipe_name))))
+
+================================================================================
+escaped quote on a continuation line of a string
+================================================================================
+
+{{ 'Don\'t
+  stop' }}
+
+---
+
+(document
+  (interpolation
+    expression: (string
+      (string_fragment)
+      (escape_sequence)
+      (string_fragment)
+      (string_fragment))))
+
+================================================================================
+comment markup inside a one-line string is string text
+================================================================================
+
+{{ 'a<!-- x -->b' }}
+
+---
+
+(document
+  (interpolation
+    expression: (string
+      (string_fragment))))
