@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 (2026-11-24)
+
+### Bug Fixes
+
+* **grammar:** accept string literals wrapped across lines (#20) (#19)
+
 ## 1.0.0 (2026-11-07)
 
 ### Breaking Changes
