@@ -64,8 +64,8 @@ typedef struct {
     Array(Tag) spare;
     // Whether the last external token was a comment lexed while the parser
     // was recovering from an error. Inside a string such a comment is string
-    // text the parser could not lex, so a line break right after it must not
-    // continue the string. Serialized after the element stack.
+    // text the parser could not lex, so until the next external token no line
+    // break may continue a string. Serialized after the element stack.
     bool recovered_comment;
 } Scanner;
 

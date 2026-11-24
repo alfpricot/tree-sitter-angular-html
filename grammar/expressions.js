@@ -22,8 +22,10 @@
 // error recovery stays on that line, instead of the string running on
 // through the markup, blocks and interpolations after it. The cost is that a
 // wrapped string's later lines cannot hold those characters unescaped. A
-// backslash before a line break is an escape sequence, as it was before line
-// breaks were accepted, and is not checked this way.
+// backslash directly before a line feed is an escape sequence, as it was
+// before line breaks were accepted, and the line after it is not checked
+// this way; before a CRLF the escape covers only the carriage return, and
+// the line feed goes through the check.
 
 import { comma_list } from './helpers.js';
 
