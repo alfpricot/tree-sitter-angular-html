@@ -123,3 +123,33 @@ string wrapped across several lines before a pipe
         (string_fragment)
         (string_fragment))
       name: (pipe_name))))
+
+================================================================================
+escaped quote on a continuation line of a string
+================================================================================
+
+{{ 'Don\'t
+  stop' }}
+
+---
+
+(document
+  (interpolation
+    expression: (string
+      (string_fragment)
+      (escape_sequence)
+      (string_fragment)
+      (string_fragment))))
+
+================================================================================
+comment markup inside a one-line string is string text
+================================================================================
+
+{{ 'a<!-- x -->b' }}
+
+---
+
+(document
+  (interpolation
+    expression: (string
+      (string_fragment))))

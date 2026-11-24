@@ -14,28 +14,31 @@
 // even though Angular rejects them.
 //
 // Angular's lexer accepts a raw line break inside a string, and formatters
-// wrap long strings that way. This grammar cannot bound an unterminated
-// string by the enclosing attribute quote, so a string's first line takes any
-// character, but each line after a break may not contain either quote
-// character, `<`, or `>`. A stray quote then runs at most to the next tag
-// boundary or quote instead of swallowing the rest of the document into a
-// single error node. The cost is that a continuation line cannot hold a
-// quote of the other kind or an angle bracket.
+// wrap long strings that way. A line break inside a string is lexed by the
+// external scanner (`scan_string_line_break` in src/scanner.c), which accepts
+// it only when the string closes on a later line and no later line before the
+// closing quote holds `<`, `>`, `{`, `}` or the other quote character, or
+// starts with `@`. A stray quote therefore still ends at its line break and
+// error recovery stays on that line, instead of the string running on
+// through the markup, blocks and interpolations after it. The cost is that a
+// wrapped string's later lines cannot hold those characters unescaped. A
+// backslash before a line break is an escape sequence, as it was before line
+// breaks were accepted, and is not checked this way.
 
 import { comma_list } from './helpers.js';
 
-const CONTINUATION_LINE = /[^"'\\\r\n<>]+/;
-const LINE_BREAK = /\r?\n[^"'\\\r\n<>]*/;
-
-// A quoted string: fragments of the first line, then zero or more line breaks
-// each followed by restricted continuation-line fragments.
-function quoted_string($, quote, first_line) {
-  const fragment = (pattern) => alias(token.immediate(pattern), $.string_fragment);
+// A quoted string. `line_break` is the external token for a line break inside
+// a string with this quote; it covers the break and the text after it up to
+// the next quote, backslash or line break.
+function quoted_string($, quote, line, line_break) {
   return seq(
     quote,
-    repeat(choice(fragment(first_line), $.escape_sequence)),
     repeat(
-      seq(fragment(LINE_BREAK), repeat(choice(fragment(CONTINUATION_LINE), $.escape_sequence))),
+      choice(
+        alias(token.immediate(line), $.string_fragment),
+        alias(line_break, $.string_fragment),
+        $.escape_sequence,
+      ),
     ),
     quote,
   );
@@ -109,7 +112,11 @@ export default {
 
   number: (_) => /(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?/,
 
-  string: ($) => choice(quoted_string($, '"', /[^"\\\n]+/), quoted_string($, "'", /[^'\\\n]+/)),
+  string: ($) =>
+    choice(
+      quoted_string($, '"', /[^"\\\n]+/, $._double_string_line_break),
+      quoted_string($, "'", /[^'\\\n]+/, $._single_string_line_break),
+    ),
 
   escape_sequence: (_) =>
     token.immediate(

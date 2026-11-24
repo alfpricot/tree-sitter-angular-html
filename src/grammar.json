@@ -2781,52 +2781,17 @@
                     "value": "string_fragment"
                   },
                   {
-                    "type": "SYMBOL",
-                    "name": "escape_sequence"
-                  }
-                ]
-              }
-            },
-            {
-              "type": "REPEAT",
-              "content": {
-                "type": "SEQ",
-                "members": [
-                  {
                     "type": "ALIAS",
                     "content": {
-                      "type": "IMMEDIATE_TOKEN",
-                      "content": {
-                        "type": "PATTERN",
-                        "value": "\\r?\\n[^\"'\\\\\\r\\n<>]*"
-                      }
+                      "type": "SYMBOL",
+                      "name": "_double_string_line_break"
                     },
                     "named": true,
                     "value": "string_fragment"
                   },
                   {
-                    "type": "REPEAT",
-                    "content": {
-                      "type": "CHOICE",
-                      "members": [
-                        {
-                          "type": "ALIAS",
-                          "content": {
-                            "type": "IMMEDIATE_TOKEN",
-                            "content": {
-                              "type": "PATTERN",
-                              "value": "[^\"'\\\\\\r\\n<>]+"
-                            }
-                          },
-                          "named": true,
-                          "value": "string_fragment"
-                        },
-                        {
-                          "type": "SYMBOL",
-                          "name": "escape_sequence"
-                        }
-                      ]
-                    }
+                    "type": "SYMBOL",
+                    "name": "escape_sequence"
                   }
                 ]
               }
@@ -2862,52 +2827,17 @@
                     "value": "string_fragment"
                   },
                   {
-                    "type": "SYMBOL",
-                    "name": "escape_sequence"
-                  }
-                ]
-              }
-            },
-            {
-              "type": "REPEAT",
-              "content": {
-                "type": "SEQ",
-                "members": [
-                  {
                     "type": "ALIAS",
                     "content": {
-                      "type": "IMMEDIATE_TOKEN",
-                      "content": {
-                        "type": "PATTERN",
-                        "value": "\\r?\\n[^\"'\\\\\\r\\n<>]*"
-                      }
+                      "type": "SYMBOL",
+                      "name": "_single_string_line_break"
                     },
                     "named": true,
                     "value": "string_fragment"
                   },
                   {
-                    "type": "REPEAT",
-                    "content": {
-                      "type": "CHOICE",
-                      "members": [
-                        {
-                          "type": "ALIAS",
-                          "content": {
-                            "type": "IMMEDIATE_TOKEN",
-                            "content": {
-                              "type": "PATTERN",
-                              "value": "[^\"'\\\\\\r\\n<>]+"
-                            }
-                          },
-                          "named": true,
-                          "value": "string_fragment"
-                        },
-                        {
-                          "type": "SYMBOL",
-                          "name": "escape_sequence"
-                        }
-                      ]
-                    }
+                    "type": "SYMBOL",
+                    "name": "escape_sequence"
                   }
                 ]
               }
@@ -4540,6 +4470,14 @@
     {
       "type": "SYMBOL",
       "name": "_icu_start"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_double_string_line_break"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_single_string_line_break"
     },
     {
       "type": "SYMBOL",
