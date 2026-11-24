@@ -19,7 +19,7 @@ The design choice that shapes everything else is that the HTML layer is built in
 
 ### [src/scanner.c](src/scanner.c)
 
-The external scanner, adapted from `tree-sitter-html`. It keeps a stack of open elements to produce matching and implicit end tags and raw text, and pushes a marker at each block `{` and each ICU message `{` so an end tag cannot close an element outside the innermost block. It also decides whether a `{` opens an ICU message, by looking for a value, a comma, a message type and a second comma after it.
+The external scanner, adapted from `tree-sitter-html`. It keeps a stack of open elements to produce matching and implicit end tags and raw text, and pushes a marker at each block `{` and each ICU message `{` so an end tag cannot close an element outside the innermost block. It also decides whether a `{` opens an ICU message, by looking for a value, a comma, a message type and a second comma after it, and whether a line break inside an expression string continues the string, by looking ahead for the closing quote with no markup, brace or block start before it.
 
 ### [src/](src)
 

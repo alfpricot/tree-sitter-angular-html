@@ -92,3 +92,102 @@ a numeric object key is an error
 ---
 
 
+
+================================================================================
+angle bracket on a continuation line of a string
+:error
+================================================================================
+
+{{ 'a
+<b' }}
+
+---
+
+
+
+================================================================================
+a stray quote in a block condition does not reach the blocks after it
+================================================================================
+
+@if (a === 'b) {
+  {{ x }}
+}
+@else {
+  {{ y }}
+}
+
+---
+
+(document
+  (ERROR
+    (identifier)
+    (string_fragment))
+  (interpolation
+    expression: (identifier))
+  (ERROR)
+  (text)
+  (text)
+  (interpolation
+    expression: (identifier))
+  (ERROR))
+
+
+================================================================================
+a stray quote in an interpolation does not reach the next line
+================================================================================
+
+<p>{{ 'oops }}
+  Hello {{ name }}
+</p>
+
+---
+
+(document
+  (element
+    (start_tag
+      (tag_name))
+    (ERROR
+      (string_fragment))
+    (text)
+    (interpolation
+      expression: (identifier))
+    (end_tag
+      (tag_name))))
+
+
+================================================================================
+brace on a continuation line of a string
+:error
+================================================================================
+
+{{ 'a
+{b' }}
+
+---
+
+
+
+================================================================================
+closing angle bracket on a continuation line of a string
+:error
+================================================================================
+
+{{ 'a
+b>' }}
+
+---
+
+
+
+================================================================================
+comment on a continuation line of a string
+:error
+================================================================================
+
+{{ 'a
+<!-- x -->
+ b' }}
+
+---
+
+

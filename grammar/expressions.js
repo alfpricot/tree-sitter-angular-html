@@ -13,12 +13,38 @@
 // Angular does not decode references, so the spellings are accepted there too
 // even though Angular rejects them.
 //
-// String literals end at a line break. Angular's lexer accepts a raw newline
-// inside a string, but this grammar cannot bound an unterminated string by
-// the enclosing attribute quote, so allowing newlines would let one stray
-// quote swallow the rest of the document into a single error node.
+// Angular's lexer accepts a raw line break inside a string, and formatters
+// wrap long strings that way. A line break inside a string is lexed by the
+// external scanner (`scan_string_line_break` in src/scanner.c), which accepts
+// it only when the string closes on a later line and no later line before the
+// closing quote holds `<`, `>`, `{`, `}` or the other quote character, or
+// starts with `@`. A stray quote therefore still ends at its line break and
+// error recovery stays on that line, instead of the string running on
+// through the markup, blocks and interpolations after it. The cost is that a
+// wrapped string's later lines cannot hold those characters unescaped. A
+// backslash directly before a line feed is an escape sequence, as it was
+// before line breaks were accepted, and the line after it is not checked
+// this way; before a CRLF the escape covers only the carriage return, and
+// the line feed goes through the check.
 
 import { comma_list } from './helpers.js';
+
+// A quoted string. `line_break` is the external token for a line break inside
+// a string with this quote; it covers the break and the text after it up to
+// the next quote, backslash or line break.
+function quoted_string($, quote, line, line_break) {
+  return seq(
+    quote,
+    repeat(
+      choice(
+        alias(token.immediate(line), $.string_fragment),
+        alias(line_break, $.string_fragment),
+        $.escape_sequence,
+      ),
+    ),
+    quote,
+  );
+}
 
 export const PREC = {
   pipe: 1,
@@ -90,16 +116,8 @@ export default {
 
   string: ($) =>
     choice(
-      seq(
-        '"',
-        repeat(choice(alias(token.immediate(/[^"\\\n]+/), $.string_fragment), $.escape_sequence)),
-        '"',
-      ),
-      seq(
-        "'",
-        repeat(choice(alias(token.immediate(/[^'\\\n]+/), $.string_fragment), $.escape_sequence)),
-        "'",
-      ),
+      quoted_string($, '"', /[^"\\\n]+/, $._double_string_line_break),
+      quoted_string($, "'", /[^'\\\n]+/, $._single_string_line_break),
     ),
 
   escape_sequence: (_) =>

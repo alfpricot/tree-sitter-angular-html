@@ -15,6 +15,10 @@
 //   tag never closes an element outside the innermost block, and elements
 //   whose end tag HTML lets you omit are closed implicitly at the block's
 //   `}`.
+// - A line break inside an expression string is accepted only when the
+//   string closes on a later line with no markup, brace or block start in
+//   between (`scan_string_line_break`), so a stray quote still ends at its
+//   line.
 
 #include "tree_sitter/alloc.h"
 #include "tree_sitter/array.h"
@@ -40,6 +44,8 @@ enum TokenType {
     BLOCK_START,
     BLOCK_END,
     ICU_START,
+    DOUBLE_STRING_LINE_BREAK,
+    SINGLE_STRING_LINE_BREAK,
     ERROR_SENTINEL,
 };
 
@@ -56,6 +62,11 @@ typedef struct {
     // element. Buffers are pooled instead: the spare list holds capacity
     // only and is never serialized.
     Array(Tag) spare;
+    // Whether the last external token was a comment lexed while the parser
+    // was recovering from an error. Inside a string such a comment is string
+    // text the parser could not lex, so until the next external token no line
+    // break may continue a string. Serialized after the element stack.
+    bool recovered_comment;
 } Scanner;
 
 static const char *const VOID_TAGS[] = {
@@ -244,13 +255,15 @@ static unsigned serialize(Scanner *scanner, char *buffer) {
     for (; serialized < total; serialized++) {
         Tag *tag = &scanner->tags.contents[serialized];
         unsigned length = tag->size > UINT8_MAX ? UINT8_MAX : tag->size;
-        if (size + 1 + length >= TREE_SITTER_SERIALIZATION_BUFFER_SIZE) break;
+        // One byte stays free for recovered_comment.
+        if (size + 1 + length + 1 >= TREE_SITTER_SERIALIZATION_BUFFER_SIZE) break;
         buffer[size++] = (char)length;
         if (length > 0) memcpy(&buffer[size], tag->contents, length);
         size += length;
     }
 
     memcpy(&buffer[0], &serialized, sizeof(serialized));
+    buffer[size++] = (char)scanner->recovered_comment;
     return size;
 }
 
@@ -260,6 +273,7 @@ static unsigned serialize(Scanner *scanner, char *buffer) {
 // spare list and refilled in place.
 static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
     recycle_tags(scanner);
+    scanner->recovered_comment = false;
     if (length == 0) return;
 
     uint16_t serialized = 0;
@@ -287,6 +301,7 @@ static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
         array_push(&tag, '?');
         array_push(&scanner->tags, tag);
     }
+    if (size < length) scanner->recovered_comment = buffer[size] != 0;
 }
 
 static bool scan_comment(TSLexer *lexer) {
@@ -603,8 +618,82 @@ static bool scan_icu_start(Scanner *scanner, TSLexer *lexer, const bool *valid_s
     return true;
 }
 
+// Whether `c` may appear in a string after a line break. `<` and `>` would
+// start or end markup, `{` and `}` open and close blocks and interpolations,
+// the other quote character would close an enclosing attribute value, and a
+// line whose first non-blank character is `@` starts a block or `@let`.
+static bool string_continuation_char(int32_t c, int32_t quote, bool line_start) {
+    if (c == '<' || c == '>' || c == '{' || c == '}') return false;
+    if (c == (quote == '"' ? '\'' : '"')) return false;
+    if (c == '@' && line_start) return false;
+    return true;
+}
+
+// A line break inside a string, plus the text after it up to the next quote,
+// backslash or line break. Angular accepts a raw line break inside a string,
+// but an unterminated string is a stray quote far more often than a wrapped
+// one, so the token is produced only when the string closes on a later line
+// and every character before the closing quote passes
+// string_continuation_char. The lookahead past the token's end decides that
+// and is not consumed. Otherwise no token is produced, the string ends in an
+// error at its line break, and recovery stays on that line.
+static bool scan_string_line_break(TSLexer *lexer, int32_t quote, enum TokenType symbol) {
+    if (lexer->lookahead == '\r') advance(lexer);
+    if (lexer->lookahead != '\n') return false;
+    advance(lexer);
+
+    bool marked = false;
+    bool line_start = true;
+    for (;;) {
+        int32_t c = lexer->lookahead;
+        if (lexer->eof(lexer)) return false;
+        bool ends_token = c == quote || c == '\\' || c == '\r' || c == '\n';
+        if (ends_token && !marked) {
+            lexer->mark_end(lexer);
+            marked = true;
+        }
+        if (c == quote) {
+            lexer->result_symbol = symbol;
+            return true;
+        }
+        if (c == '\\') {
+            // An escape sequence: its second character is never a delimiter.
+            advance(lexer);
+            if (lexer->eof(lexer)) return false;
+            bool breaks_line = lexer->lookahead == '\r' || lexer->lookahead == '\n';
+            if (lexer->lookahead == '\r') advance(lexer);
+            if (lexer->lookahead == '\n') advance(lexer);
+            else if (!breaks_line) advance(lexer);
+            line_start = breaks_line;
+            continue;
+        }
+        if (c == '\r' || c == '\n') {
+            advance(lexer);
+            line_start = true;
+            continue;
+        }
+        if (!string_continuation_char(c, quote, line_start)) return false;
+        if (c != ' ' && c != '\t') line_start = false;
+        advance(lexer);
+    }
+}
+
 static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
     bool in_error_recovery = valid_symbols[ERROR_SENTINEL];
+    bool after_recovered_comment = scanner->recovered_comment;
+    scanner->recovered_comment = false;
+
+    // Inside a string the only external token is a line break; in particular
+    // `<!--` there is string text, not a comment.
+    if (!in_error_recovery &&
+        (valid_symbols[DOUBLE_STRING_LINE_BREAK] || valid_symbols[SINGLE_STRING_LINE_BREAK])) {
+        bool is_double = valid_symbols[DOUBLE_STRING_LINE_BREAK];
+        if (after_recovered_comment) return false;
+        if (lexer->lookahead != '\r' && lexer->lookahead != '\n') return false;
+        return scan_string_line_break(lexer, is_double ? '"' : '\'',
+                                      is_double ? DOUBLE_STRING_LINE_BREAK
+                                                : SINGLE_STRING_LINE_BREAK);
+    }
 
     if (valid_symbols[RAW_TEXT] && !valid_symbols[START_TAG_NAME] &&
         !valid_symbols[END_TAG_NAME]) {
@@ -636,7 +725,9 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             advance(lexer);
             if (lexer->lookahead == '!') {
                 advance(lexer);
-                return valid_symbols[COMMENT] && scan_comment(lexer);
+                if (!valid_symbols[COMMENT] || !scan_comment(lexer)) return false;
+                scanner->recovered_comment = in_error_recovery;
+                return true;
             }
             if (starts_markup(lexer->lookahead)) {
                 return valid_symbols[IMPLICIT_END_TAG] && scan_implicit_end_tag(scanner, lexer);
