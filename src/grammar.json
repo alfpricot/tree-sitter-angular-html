@@ -2788,6 +2788,50 @@
               }
             },
             {
+              "type": "REPEAT",
+              "content": {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "IMMEDIATE_TOKEN",
+                      "content": {
+                        "type": "PATTERN",
+                        "value": "\\r?\\n[^\"'\\\\\\r\\n<>]*"
+                      }
+                    },
+                    "named": true,
+                    "value": "string_fragment"
+                  },
+                  {
+                    "type": "REPEAT",
+                    "content": {
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "ALIAS",
+                          "content": {
+                            "type": "IMMEDIATE_TOKEN",
+                            "content": {
+                              "type": "PATTERN",
+                              "value": "[^\"'\\\\\\r\\n<>]+"
+                            }
+                          },
+                          "named": true,
+                          "value": "string_fragment"
+                        },
+                        {
+                          "type": "SYMBOL",
+                          "name": "escape_sequence"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
               "type": "STRING",
               "value": "\""
             }
@@ -2820,6 +2864,50 @@
                   {
                     "type": "SYMBOL",
                     "name": "escape_sequence"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "IMMEDIATE_TOKEN",
+                      "content": {
+                        "type": "PATTERN",
+                        "value": "\\r?\\n[^\"'\\\\\\r\\n<>]*"
+                      }
+                    },
+                    "named": true,
+                    "value": "string_fragment"
+                  },
+                  {
+                    "type": "REPEAT",
+                    "content": {
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "ALIAS",
+                          "content": {
+                            "type": "IMMEDIATE_TOKEN",
+                            "content": {
+                              "type": "PATTERN",
+                              "value": "[^\"'\\\\\\r\\n<>]+"
+                            }
+                          },
+                          "named": true,
+                          "value": "string_fragment"
+                        },
+                        {
+                          "type": "SYMBOL",
+                          "name": "escape_sequence"
+                        }
+                      ]
+                    }
                   }
                 ]
               }
